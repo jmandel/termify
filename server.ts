@@ -17,13 +17,15 @@ function search(
   let qDisjunction = query.replace(/\-/g, " ").split(" ").filter((w) =>
     w.trim() != ""
   ).join(" OR ");
-  console.log(qDisjunction);
   const results = searchQuery.all(qDisjunction, limit, offset);
+  console.log(searchQuery);
 
   const rows: any[] = [];
   for (const row of results) {
+      console.log(row)
     rows.push(vocabulary.transformResult(row));
   }
+  console.log(rows)
 
   return rows;
 }
@@ -33,7 +35,7 @@ const makeVocab = (name, system) => {
     [name]: {
       db: new Database(`${name}.db`),
       searchQuery: `
-        SELECT *, ROUND(rank, 0) FROM vocab
+        SELECT *, ROUND(rank, 0) rank, length(display) FROM vocab
         WHERE vocab MATCH ?
         and rank < -5
         ORDER BY rank, length(display)
