@@ -150,9 +150,9 @@ Action Input: GET https://tx.local?terminology=LOINC&display=Physical%20activity
 Observation:
 {}
 
-Thought: Are any of these results an excellent match for the user's original context?  Did my query change the meaning of the user's intent? Should I run another query to improve the results? I will begin a new "Thought:" to answer these questions questions, then I will pick from these actions:
+Thought: 1) What "display" was I expecting  in the current activity? 2) Which of these results matches the context best? 3) Do I need to look at the next page of results? 4) Would a different search find terms that better match the context? I will begin a new "Thought:" and I will answer each of these four questions carefully, then I will pick from these actions:
 
  * Action: Final Answer, followed by a FHIR Coding in a ```json block
- * Action:  HTTP Query, with an updated query based on my reflections or an available link. I will never repeat a query, but always make improvements.
- o
+ * Action:  HTTP Query, using a better guess at the "display". I will never repeat a query, but always make improvements.
+
 

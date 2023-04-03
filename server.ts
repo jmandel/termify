@@ -62,7 +62,8 @@ const router = new Router();
 router.get("/search", (context) => {
   const terminology = context.request.url.searchParams.get("terminology")
     .toLowerCase();
-  const query = context.request.url.searchParams.get("display");
+  const query = context.request.url.searchParams.get("display").replace(/[^A-Za-z\s]+/g, " ");
+  console.log(query)
   const limit = context.request.url.searchParams.get("limit") || LIMIT_DEFAULT;
   const offset = context.request.url.searchParams.get("offset") || 0;
 
