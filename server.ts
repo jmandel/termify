@@ -59,22 +59,24 @@ console.log(vocab);
 const LIMIT_DEFAULT = 20;
 const app = new Application();
 const router = new Router();
-router.get("/search", (context) => {
-  const terminology = context.request.url.searchParams.get("terminology")
+router.get("/\$lookup-code", (context) => {
+  const terminology = context.request.url.searchParams.get("system")
     .toLowerCase();
-  const query = context.request.url.searchParams.get("display").replace(/[^A-Za-z\s]+/g, " ");
+  const query = (context.request.url.searchParams.get("display") || 
+                context.request.url.searchParams.get("query")
+                ).replace(/[^A-Za-z\s]+/g, " ");
   console.log(query)
-  const limit = context.request.url.searchParams.get("limit") || LIMIT_DEFAULT;
-  const offset = context.request.url.searchParams.get("offset") || 0;
+  const limit = parseInt(context.request.url.searchParams.get("limit") || LIMIT_DEFAULT);
+  const offset = parseInt(context.request.url.searchParams.get("offset") || 0);
 
-  const vocabulary = vocab[terminology];
+  const vocabulary = vocab[terminology] || Object.values(vocab).find(v => v.system === terminology);
 
   if (vocabulary && query) {
     const results = search(
       vocabulary,
       query,
-      parseInt(limit),
-      parseInt(offset),
+      limit,
+      offset,
     );
     context.response.body = JSON.stringify(
       {
@@ -82,7 +84,7 @@ router.get("/search", (context) => {
         results,
         links: {
           nextPageOfResults:
-            `./search?terminology=${terminology}&display=${query}&offset=${
+            `./$lookup-code?system=${terminology}&display=${encodeURIComponent(query)}&offset=${
               offset + limit
             }&limit=${limit}`,
         },
