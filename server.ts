@@ -1,5 +1,4 @@
-import { Application, Router } from "https://deno.land/x/oak/mod.ts";
-import { Database } from "https://deno.land/x/sqlite3@0.9.1/mod.ts";
+import { Application, Database, Router } from "./deps.ts";
 
 interface Vocabulary {
   db: Database;
@@ -12,11 +11,13 @@ function search(
   vocabulary: Vocabulary,
   query: string,
   limit = 100,
-  offset = 0
+  offset = 0,
 ): any[] {
   const searchQuery = vocabulary.db.prepare(vocabulary.searchQuery);
-  let qDisjunction = query.replace(/\-/g, " ").split(" ").filter(w => w.trim() != "").join(" OR ");
-  console.log(qDisjunction)
+  let qDisjunction = query.replace(/\-/g, " ").split(" ").filter((w) =>
+    w.trim() != ""
+  ).join(" OR ");
+  console.log(qDisjunction);
   const results = searchQuery.all(qDisjunction, limit, offset);
 
   const rows: any[] = [];
@@ -28,21 +29,22 @@ function search(
 }
 
 const makeVocab = (name, system) => {
-return {[name]:  {
-    db: new Database(`${name}.db`),
-    searchQuery: `
+  return {
+    [name]: {
+      db: new Database(`${name}.db`),
+      searchQuery: `
         SELECT *, ROUND(rank, 0) FROM vocab
         WHERE vocab MATCH ?
         and rank < -5
         ORDER BY rank, length(display)
         LIMIT ? OFFSET ?
     `,
-    system,
-    transformResult(row) {
-      return { code: row.code, display: row.display };
+      system,
+      transformResult(row) {
+        return { code: row.code, display: row.display };
+      },
     },
-  }}
-
+  };
 };
 
 const vocab: Record<string, Vocabulary> = {
@@ -50,36 +52,41 @@ const vocab: Record<string, Vocabulary> = {
   ...makeVocab("rxnorm", "http://www.nlm.nih.gov/research/umls/rxnorm"),
   ...makeVocab("snomed", "http://snomed.info/sct"),
 };
-console.log(vocab)
+console.log(vocab);
 
-const LIMIT_DEFAULT=20;
+const LIMIT_DEFAULT = 20;
 const app = new Application();
 const router = new Router();
 router.get("/search", (context) => {
-  const terminology = context.request.url.searchParams.get("terminology").toLowerCase();
+  const terminology = context.request.url.searchParams.get("terminology")
+    .toLowerCase();
   const query = context.request.url.searchParams.get("display");
   const limit = context.request.url.searchParams.get("limit") || LIMIT_DEFAULT;
   const offset = context.request.url.searchParams.get("offset") || 0;
 
-  let vocabulary: Vocabulary | undefined;
-  vocabulary = vocab[terminology];
+  const vocabulary = vocab[terminology];
 
   if (vocabulary && query) {
     const results = search(
       vocabulary,
       query,
       parseInt(limit),
-      parseInt(offset)
+      parseInt(offset),
     );
-    context.response.body = JSON.stringify({
+    context.response.body = JSON.stringify(
+      {
         system: vocabulary.system,
         results,
         links: {
-          nextPageOfResults: `?terminology=${terminology}&query=${query}&offset=${
-            offset + limit
-          }&limit=${limit}`,
+          nextPageOfResults:
+            `./search?terminology=${terminology}&display=${query}&offset=${
+              offset + limit
+            }&limit=${limit}`,
         },
-      }, null, 2);
+      },
+      null,
+      2,
+    );
   } else {
     console.log("invalid", terminology, query);
   }
