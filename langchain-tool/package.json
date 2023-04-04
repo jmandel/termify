@@ -1,0 +1,22 @@
+{
+  "name": "chain",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.ts",
+  "scripts": {
+    "fhir": "tsx ./src/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^18.15.11",
+    "tsx": "^3.12.6",
+    "typescript": "^5.0.3"
+  },
+  "dependencies": {
+    "langchain": "^0.0.47",
+    "ts-node": "^10.9.1"
+  }
+}
