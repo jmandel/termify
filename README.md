@@ -13,14 +13,6 @@ At present, the project includes a set of prompts to guide the language model in
 
 The long-term aspiration is to continually improve the accuracy and usefulness of the language model's responses by incorporating more comprehensive and up-to-date medical terminologies and refining the prompt structure.
 
-## Technology Choices
-
-This project uses the following technologies:
-
-1. **Deno:** A secure JavaScript/TypeScript runtime that provides a simple and efficient environment for building the server.
-2. **SQLite:** A lightweight database engine used to store medical terminologies and perform searches efficiently.
-3. **Oak:** A middleware framework for Deno's HTTP server, inspired by Koa and Express, which simplifies building web applications and APIs.
-
 ## Getting Started
 
 To get started with the project, follow these steps:
@@ -39,26 +31,6 @@ To get started with the project, follow these steps:
 ```bash
 deno run --allow-all --allow-ffi --unstable server.ts
 ```
-
-The server will start listening on port 8000 by default.
-
-## Using the server with a large language model
-
-To use the server with a large language model, send GET requests to the `/search` endpoint with the required parameters:
-
-- `terminology`: One of "LOINC" (for measurements, tests, and orders), "RXNORM" (for medications), or "SNOMED" (for conditions or procedures).
-- `display`: The display value that will appear in the terminology (FHIR Coding.display) in a well-curated EHR.
-
-For example:
-
-    GET https://localhost:8000/search?terminology=SNOMED&display=Myocardial+infarction+disorder
-
-
-The server will respond with the relevant medical terminology codes in a JSON format.
-
-## Integration with the Language Model
-
-The server fits in with the prompts by providing a simple and efficient way for the language model to perform vocabulary lookups when generating responses. As the language model processes user queries, it can use the server's `/search` endpoint to obtain the appropriate medical terminology codes, thus improving the accuracy and utility of its responses.
 
 
 ## Database Indexing Strategy
@@ -79,4 +51,52 @@ FTS5 provides several benefits that make it suitable for this project:
 
 To leverage FTS5's capabilities, each medical terminology (LOINC, RxNorm, and SNOMED) has its own SQLite database file with a dedicated FTS5 virtual table. These tables store the medical terms and their corresponding codes, which can be efficiently searched using FTS5's query language.
 
-The server's `search()` function uses prepared statements to perform queries on these FTS5 virtual tables, ensuring optimal performance and flexibility for the project's medical terminology lookups.
+
+## Integration with the Language Model
+
+The server fits in with the prompts by providing a simple and efficient way for the language model to perform vocabulary lookups when generating responses. As the language model processes user queries, it can use the server's `$lookup-code` endpoint to obtain the appropriate medical terminology codes, thus improving the accuracy and utility of its responses.
+
+Example tool
+
+```sh
+cd langchain-tool
+export OPENAI_API_KEY=
+npm run fhir "patient has a left inguinal hernia. he needs to stop his coumadin before surgery"
+```
+
+```json
+{
+  "result": [
+    {
+      "originalText": "left inguinal hernia",
+      "focus": "inguinal hernia",
+      "thoughts": "SNOMED is the best system for anatomical locations and conditions",
+      "system": "http://snomed.info/sct",
+      "query": [
+        "inguinal hernia"
+      ],
+      "bestCoding": {
+        "system": "http://snomed.info/sct",
+        "code": "236022004",
+        "display": "Left inguinal hernia (disorder)"
+      }
+    },
+    {
+      "originalText": "stop his coumadin before surgery",
+      "focus": "coumadin",
+      "thoughts": "RxNorm is the best system for medications, and I can find a term at the level of medication + dosage",
+      "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+      "query": [
+        "warfarin"
+      ],
+      "bestCoding": {
+        "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+        "code": "11289",
+        "display": "warfarin"
+      }
+    }
+  ]
+}
+```
+
+
