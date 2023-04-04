@@ -3,16 +3,40 @@ import { BaseLanguageModel } from "langchain/base_language";
 import { BaseChain, SerializedBaseChain } from "langchain/chains";
 
 import { BaseMemory } from "langchain/memory";
-import { prompt, refinementPrompt } from "./prompt.js";
+import {
+  initialPrompt,
+  refinementPrompt,
+} from "./prompt.js";
 
 import { ChatOpenAI } from "langchain/chat_models";
 import { BaseOutputParser, ChainValues } from "langchain/schema";
+import { RegexParser } from "langchain/output_parsers";
 
-const defaultPrompt = prompt;
+class MultiOutputParser extends BaseOutputParser {
+  parsers: BaseOutputParser[];
+  constructor(...parsers) {
+    super();
+    this.parsers = parsers;
+  }
+
+  async parse(input: string): Promise<Record<string, any>> {
+    let ret = {};
+    for (const p of this.parsers) {
+      ret = { ...ret, ...((await p.parse(input)) as Record<string, any>) };
+    }
+    return ret;
+  }
+
+  getFormatInstructions(): string {
+    return this.parsers.map((p) => p.getFormatInstructions()).join("\n");
+  }
+}
 
 class CodingsParser extends BaseOutputParser {
-  async parse(input: string): Promise<Record<string, any>[]> {
-    console.log("COdings in ", input)
+  constructor(public outputKey: string) {
+    super();
+  }
+  async parse(input: string): Promise<Record<string, any>> {
     const jsonObjects: any[] = [];
     let jsonString = "";
 
@@ -44,7 +68,7 @@ class CodingsParser extends BaseOutputParser {
       }
     }
 
-    return jsonObjects as Record<string, any>[];
+    return { [this.outputKey]: jsonObjects };
   }
 
   getFormatInstructions(): string {
@@ -52,6 +76,7 @@ class CodingsParser extends BaseOutputParser {
   }
 }
 
+const defaultPrompt = initialPrompt;
 export class HealthcareConceptChain extends BaseChain {
   _chainType(): string {
     return `healthcare-concept-chain`;
@@ -78,14 +103,17 @@ export class HealthcareConceptChain extends BaseChain {
     const { memory } = fields;
     super(memory);
     this.llmChain = new LLMChain({
-      outputParser: new CodingsParser(),
+      outputParser: new CodingsParser("codings"),
       prompt: fields.prompt ?? defaultPrompt,
       llm: fields.llm,
       outputKey: this.outputKey,
       //   memory: this.memory,
     });
 
-    this.refinementChain = new HealthcareConceptRefineChain({llm, txEndpoint: this.txEndpoint})
+    this.refinementChain = new HealthcareConceptRefineChain({
+      llm,
+      txEndpoint: this.txEndpoint,
+    });
 
     this.txEndpoint = fields.txEndpoint ?? this.txEndpoint;
     this.inputKey = fields.inputKey ?? this.inputKey;
@@ -99,10 +127,16 @@ export class HealthcareConceptChain extends BaseChain {
 
     const clinicalText: string = values[this.inputKey];
 
-    const codings = await this.llmChain.predict({ clinicalText }) as unknown as any[];
+    const { codings } = (await this.llmChain.predict({
+      clinicalText,
+    })) as unknown as {
+      codings: Record<string, any>[];
+    };
+
     for (const c of codings) {
-      const refinement = await this.refinementChain.call(c)
-      c.bestCoding = refinement.bestCoding;
+      const refinement = await this.refinementChain.call(c);
+      c.bestCoding = refinement?.bestCoding;
+      c.score = refinement?.score;
     }
     return { [this.outputKey]: codings };
   }
@@ -111,8 +145,13 @@ export class HealthcareConceptChain extends BaseChain {
     return [this.inputKey];
   }
 }
-
-
+interface VocabResult {
+  codings: Record<string, any>[];
+  grade?: string;
+  rationale?: string;
+  newQuerySystem: string;
+  newQuery: string;
+}
 export class HealthcareConceptRefineChain extends BaseChain {
   _chainType(): string {
     return `healthcare-concept-refinement-chain`;
@@ -124,13 +163,19 @@ export class HealthcareConceptRefineChain extends BaseChain {
   llmChain: LLMChain;
   txEndpoint: string = "httsp://vocab-tool.fly.dev/$lookup-code";
 
-  constructor(fields: {
-    llm: BaseLanguageModel;
-    txEndpoint?: string;
-  }) {
+  constructor(fields: { llm: BaseLanguageModel; txEndpoint?: string }) {
     super();
     this.llmChain = new LLMChain({
-      outputParser: new CodingsParser(),
+      outputParser: new MultiOutputParser(
+        new CodingsParser("codings"),
+        new RegexParser(/Final Grade: (A|B|C)/i, ["grade"], "noGrade"),
+        new RegexParser(/Justification: (.*)/i, ["rationale"], "noRationale"),
+        new RegexParser(
+          /New Query: \?system=(\S+)&display=(\S+)/i,
+          ["newQuerySystem", "newQuery"],
+          "noQuery"
+        )
+      ),
       prompt: refinementPrompt,
       llm: fields.llm,
     });
@@ -139,12 +184,58 @@ export class HealthcareConceptRefineChain extends BaseChain {
   }
 
   async _call(values: ChainValues): Promise<ChainValues> {
-    const {originalText, focus, system, query} = values;
-    const vocabQuery = await fetch(`${this.txEndpoint}?system=${encodeURIComponent(system)}&display=${encodeURIComponent(JSON.stringify(query))}`);
-    const vocabResult = await vocabQuery.json();
-    console.log("VR", JSON.stringify(vocabResult, null, 2))
-    const codings = await this.llmChain.predict({originalText, focus: focus || originalText, system, resultJson: JSON.stringify(vocabResult, null, 2)});
-    return { bestCoding: codings[0] };
+    let { originalText, focus, system, query } = values;
+    let { failures = [] } = values;
+
+    while (failures.length < 5) {
+      const vocabQuery = await fetch(
+        `${this.txEndpoint}?system=${encodeURIComponent(
+          system
+        )}&display=${encodeURIComponent(JSON.stringify(query))}`
+      );
+      const vocabResult = await vocabQuery.json();
+
+      const prediction = (await this.llmChain.predict({
+        originalText,
+        focus: focus || originalText,
+        system,
+        query,
+        failures,
+        resultJson: JSON.stringify(vocabResult, null, 2),
+      })) as unknown as VocabResult;
+      console.log("PREDICT", prediction);
+
+      const { codings, grade, rationale, newQuerySystem, newQuery } =
+        prediction;
+
+      if (
+        vocabResult.results.some(
+          (c) => c.code === codings?.[0]?.code && ["A", "B"].includes(grade)
+        )
+      ) {
+        console.log("Success");
+        return { bestCoding: codings[0], score: { grade, rationale } };
+      }
+      console.log(
+        "Failed b/c",
+        vocabResult.results.some((c) => c.code === codings?.[0]?.code),
+        "and",
+        ["A", "B"].includes(grade)
+      );
+
+      failures.push({
+        ...values,
+        system,
+        query,
+        failures: undefined,
+        rationale: "No suitable results found",
+      });
+      if (newQuerySystem && newQuery) {
+        system = newQuerySystem;
+      }
+      continue;
+    }
+    return {}
   }
 
   get inputKeys(): string[] {
@@ -153,9 +244,16 @@ export class HealthcareConceptRefineChain extends BaseChain {
 }
 
 const q = process.argv[2];
-let llm = new ChatOpenAI({ temperature: 0, concurrency: 3});
+let llm = new ChatOpenAI({ temperature: 0, concurrency: 3 });
+// let pfam = await fnToPrompt(jokes).partial({"given": "Zena"})
+// const lpp = new LLMChain({ llm, prompt: templatize(jokes) });
+
+// console.log(await lpp.call({"family": "Smith"}))
+
 const hcc = new HealthcareConceptChain({ llm });
 const res = await hcc.call({
   clinicalText: q,
 });
+
+console.log("Final");
 console.log(JSON.stringify(res, null, 2));
