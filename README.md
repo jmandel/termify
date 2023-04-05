@@ -29,6 +29,7 @@ To get started with the project, follow these steps:
 3. Run the server with the following command:
 
 ```bash
+gunzip *.db.gz
 deno run --allow-all --allow-ffi --unstable server.ts
 ```
 
