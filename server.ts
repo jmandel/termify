@@ -43,7 +43,7 @@ const makeVocab = (name, system) => {
     `,
       system,
       transformResult(row) {
-        return { code: row.code, display: row.display };
+        return { code: `${row.code}`, display: row.display };
       },
     },
   };
@@ -92,7 +92,11 @@ router.get("/\$lookup-code", (context) => {
       null,
       2,
     );
+  } else if (!vocabulary) {
+    context.response.body = {"failed search": "Code system not supported: " + terminology}
+    console.log("invalid", terminology, query);
   } else {
+    context.response.body = {"failed search": "Query not provided"}
     console.log("invalid", terminology, query);
   }
 });

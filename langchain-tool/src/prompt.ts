@@ -127,25 +127,22 @@ ${historyOfFailedQueries(state)}
 Now I have queried the terminology server for ?system=${
     state.system
   }&display=${encodeURIComponent(state.query)}.
-Here are the results returned by the terminology server:
+
+Here are the candidate results:
 
 ${state.resultJson}
 
-If the terminology server returned a good result, copy that result's code + display exactly into a ${"```"}json code block. Then add ${"`"}"system": "${
-    state.system
-  }"${"`"}.
-
-Example of output
+Examine the array of candidate results. Narrow it down to the best choice. Copy its code + display exactly into a ${"```"}json code block like:
 
 ${"```"}json
 {
-  "system": "", // exact copy from terminology server .system
-  "display": "", // exact copy from terminology server .result[].display
-  "code": "" // exact copy from terminology server .result[].code
+  "system": "", // exact copy from candidate system
+  "display": "", // exact copy from candidate result JSON
+  "code": "" // exact copy from candidate result JSON
 }
 ${"```"}
 
-Then output a "Final Grade: A or B or C or F", evaluating the Coding and include a brief justification ("Justification: ...")
+Then output a "Final Grade: A or B or C or F", evaluating the Coding. Include a brief justification ("Justification: ...")
 * A if it clearly meets the user's intent
 * B if there is something that you are uncertain of
 * C if there seems to be a problem here and this work needs to be redone

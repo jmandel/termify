@@ -12,7 +12,7 @@ import { ChatOpenAI } from "langchain/chat_models";
 import { BaseOutputParser, ChainValues } from "langchain/schema";
 import { RegexParser } from "langchain/output_parsers";
 
-class MultiOutputParser extends BaseOutputParser {
+export class MultiOutputParser extends BaseOutputParser {
   parsers: BaseOutputParser[];
   constructor(...parsers) {
     super();
@@ -87,7 +87,8 @@ export class HealthcareConceptChain extends BaseChain {
 
   llmChain: LLMChain;
   refinementChain: BaseChain;
-  txEndpoint: string = "https://vocab-tool.fly.dev/$lookup-code";
+  // txEndpoint: string = "https://vocab-tool.fly.dev/$lookup-code";
+  txEndpoint: string = "http://localhost:8000/$lookup-code";
 
   inputKey = "clinicalText";
   outputKey = "result";
@@ -161,7 +162,8 @@ export class HealthcareConceptRefineChain extends BaseChain {
   }
 
   llmChain: LLMChain;
-  txEndpoint: string = "httsp://vocab-tool.fly.dev/$lookup-code";
+  txEndpoint: string;
+  maxAttemptsBeforeFailure: number = 5;
 
   constructor(fields: { llm: BaseLanguageModel; txEndpoint?: string }) {
     super();
@@ -187,7 +189,8 @@ export class HealthcareConceptRefineChain extends BaseChain {
     let { originalText, focus, system, query } = values;
     let { failures = [] } = values;
 
-    while (failures.length < 5) {
+    while (failures.length < this.maxAttemptsBeforeFailure) {
+
       const vocabQuery = await fetch(
         `${this.txEndpoint}?system=${encodeURIComponent(
           system
@@ -203,6 +206,7 @@ export class HealthcareConceptRefineChain extends BaseChain {
         failures,
         resultJson: JSON.stringify(vocabResult, null, 2),
       })) as unknown as VocabResult;
+
       console.log("PREDICT", prediction);
 
       const { codings, grade, rationale, newQuerySystem, newQuery } =
@@ -213,15 +217,15 @@ export class HealthcareConceptRefineChain extends BaseChain {
           (c) => c.code === codings?.[0]?.code && ["A", "B"].includes(grade)
         )
       ) {
-        console.log("Success");
+        // console.log("Success");
         return { bestCoding: codings[0], score: { grade, rationale } };
       }
-      console.log(
-        "Failed b/c",
-        vocabResult.results.some((c) => c.code === codings?.[0]?.code),
-        "and",
-        ["A", "B"].includes(grade)
-      );
+      // console.log(
+      //   "Failed b/c",
+      //   vocabResult.results.some((c) => c.code === codings?.[0]?.code),
+      //   "and",
+      //   ["A", "B"].includes(grade)
+      // );
 
       failures.push({
         ...values,
