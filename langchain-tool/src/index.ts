@@ -87,8 +87,8 @@ export class HealthcareConceptChain extends BaseChain {
 
   llmChain: LLMChain;
   refinementChain: BaseChain;
-  // txEndpoint: string = "https://vocab-tool.fly.dev/$lookup-code";
-  txEndpoint: string = "http://localhost:8000/$lookup-code";
+  txEndpoint: string = "https://vocab-tool.fly.dev/$lookup-code";
+  // txEndpoint: string = "http://localhost:8000/$lookup-code";
 
   inputKey = "clinicalText";
   outputKey = "result";
