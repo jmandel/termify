@@ -1,0 +1,1385 @@
+
+> chain@1.0.0 fhir
+> tsx ./src/index.ts src/index.ts Isolated Microscopic hematuria-> Repeat urinalysis w/microscopy, RFTs in 6 weeks
+
+Prompting with
+r You are a helpful informatics assistant trained in clinical terminology and deeply familiar with the most common medical synonyms.
+r Welcome! Please provide clinical text and I will find the core concepts that can be coded in FHIR. I focus on US Core vocabularies for every concept, and I create a terminology query for each concept. I break down complex concepts like "A and B" into separate concepts with distinct "focus".
+
+I query for the preferred term designation. If I'm unsure of the best term, I can include >1. But if there are different concept. Display is what should appear well curated EHR. I use short words, avoid acronyms or abbreviations, or symbols, and put spaces between terms. I separate them out into top-level JSON concepts {}. This is what should appear well curated EHR.
+
+I always identify the original text, the focus (a singular entity), my thoughts about coding, and the query that I will execute.
+
+I always recognize 1) medications,2) problems or conditions, 3) observable or measurable entities.
+
+key terminologies:
+  * LOINC for observations, measurements, tests orders
+  * SNOMED for problems, conditions, indications, procedures
+  * RXNORM for medications and other rx or OTC products (query for ingredient or dose only; do not query for indication or sig terms)
+
+Query params:
+* system: URL identifying the code system to query
+* display: array of query terms to match against coding displays 
+
+r Patient walked 8000 steps yesterday. He has previously had a heart attack. Prilosec 20mg OTC for GERD symptoms. Recommend referral to neurology for headachs. track respitatory rate and bp daily.
+r {
+"originalText": "Patient walked 8000 steps yesterday.",
+"focus": "steps",
+"thoughts": "LOINC is more appropriate for observations and measurements",
+"system": "http://loinc.org",
+"display": ["step count for 24h", "total steps per day"]
+}
+{
+"originalText": "He has previously had a heart attack.",
+"focus": "heart attack",
+"thoughts": "Considered using ICD-10 for heart attack, but SNOMED is more specific and widely used in FHIR resources.",
+"system": "http://snomed.info/sct",
+"display": ["myocardial infarction"]
+}
+{
+  "originalText": "Prilosec 20mg OTC for GERD symptoms",
+  "focus": "Prilosec 20mg OTC",
+  "thoughts": "Ues RxNorm to identify this drug with dose",
+  "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+  "display": [
+    "Prilosec 20 mg OTC"
+  ]
+}
+{
+  "originalText": "Prilosec 20mg OTC for GERD symptoms",
+  "focus": "GERD symptoms",
+  "thoughts": "Use SNOMED for GERD",
+  "system": "http://snomed.info/sct",
+  "display": [
+    "gastroesophageal reflux disease",
+  ]
+}
+{
+"originalText": "headachs",
+"thoughts": "Use SNOMED for generic headache related terms.",
+"system": "http://snomed.info/sct",
+"display": ["headache"]
+}
+{
+"originalText": "track respiratory rate and BP daily",
+"focus": "respiratory rate",
+"thoughts": "LOINC is the best system for vital signs",
+"system": "http://loinc.org",
+"display": ["respiratory rate"]
+}
+{
+"originalText": "track respiratory rate and BP daily",
+"focus": "BP",
+"thoughts": "LOINC is the best system for vital signs",
+"system": "http://loinc.org",
+"display": ["systolic diastolic blood pressure panel"]
+}
+r Isolated Microscopic hematuria-> Repeat urinalysis w/microscopy, RFTs in 6 weeks
+ret gens [
+  {
+    text: '{\n' +
+      '"originalText": "Isolated Microscopic hematuria",\n' +
+      '"focus": "Microscopic hematuria",\n' +
+      '"thoughts": "Use SNOMED for hematuria",\n' +
+      '"system": "http://snomed.info/sct",\n' +
+      '"display": ["Microscopic hematuria"]\n' +
+      '}\n' +
+      '{\n' +
+      '"originalText": "Repeat urinalysis w/microscopy, RFTs in 6 weeks",\n' +
+      '"focus": "urinalysis with microscopy",\n' +
+      '"thoughts": "Use LOINC for urinalysis with microscopy",\n' +
+      '"system": "http://loinc.org",\n' +
+      '"display": ["Urinalysis complete panel - Urine"]\n' +
+      '}\n' +
+      '{\n' +
+      '"originalText": "Repeat urinalysis w/microscopy, RFTs in 6 weeks",\n' +
+      '"focus": "RFTs",\n' +
+      '"thoughts": "Use LOINC for RFTs",\n' +
+      '"system": "http://loinc.org",\n' +
+      '"display": ["Renal function panel - Serum or Plasma"]\n' +
+      '}',
+    message: AIChatMessage {
+      text: '{\n' +
+        '"originalText": "Isolated Microscopic hematuria",\n' +
+        '"focus": "Microscopic hematuria",\n' +
+        '"thoughts": "Use SNOMED for hematuria",\n' +
+        '"system": "http://snomed.info/sct",\n' +
+        '"display": ["Microscopic hematuria"]\n' +
+        '}\n' +
+        '{\n' +
+        '"originalText": "Repeat urinalysis w/microscopy, RFTs in 6 weeks",\n' +
+        '"focus": "urinalysis with microscopy",\n' +
+        '"thoughts": "Use LOINC for urinalysis with microscopy",\n' +
+        '"system": "http://loinc.org",\n' +
+        '"display": ["Urinalysis complete panel - Urine"]\n' +
+        '}\n' +
+        '{\n' +
+        '"originalText": "Repeat urinalysis w/microscopy, RFTs in 6 weeks",\n' +
+        '"focus": "RFTs",\n' +
+        '"thoughts": "Use LOINC for RFTs",\n' +
+        '"system": "http://loinc.org",\n' +
+        '"display": ["Renal function panel - Serum or Plasma"]\n' +
+        '}'
+    }
+  }
+]
+Prompting with
+r You are a helpful informatics assistant trained in clinical terminology and deeply familiar with the most common medical synonyms.
+r Welcome! Please provide clinical text and I will find the core concepts that can be coded in FHIR. I focus on US Core vocabularies for every concept, and I create a terminology query for each concept. I break down complex concepts like "A and B" into separate concepts with distinct "focus".
+
+I query for the preferred term designation. If I'm unsure of the best term, I can include >1. But if there are different concept. Display is what should appear well curated EHR. I use short words, avoid acronyms or abbreviations, or symbols, and put spaces between terms. I separate them out into top-level JSON concepts {}. This is what should appear well curated EHR.
+
+I always identify the original text, the focus (a singular entity), my thoughts about coding, and the query that I will execute.
+
+I always recognize 1) medications,2) problems or conditions, 3) observable or measurable entities.
+
+key terminologies:
+  * LOINC for observations, measurements, tests orders
+  * SNOMED for problems, conditions, indications, procedures
+  * RXNORM for medications and other rx or OTC products (query for ingredient or dose only; do not query for indication or sig terms)
+
+Query params:
+* system: URL identifying the code system to query
+* display: array of query terms to match against coding displays 
+
+r Thanks! In my clinical note, I mentioned "Isolated Microscopic hematuria". I'm looking for the code that best matches "Microscopic hematuria".
+
+
+
+Now I have queried the terminology server for ?system=http://snomed.info/sct&display=Microscopic%20hematuria.
+
+## Candidate Results
+
+{
+  "system": "http://snomed.info/sct",
+  "results": [
+    {
+      "code": "197940006",
+      "display": "Microscopic hematuria (disorder)"
+    },
+    {
+      "code": "281858008",
+      "display": "Recurrent microscopic hematuria (disorder)"
+    },
+    {
+      "code": "281857003",
+      "display": "Persistent microscopic hematuria (disorder)"
+    },
+    {
+      "code": "-1458102459",
+      "display": "Asymptomatic microscopic hematuria (disorder)"
+    },
+    {
+      "code": "1148864001",
+      "display": "Intermittent microscopic hematuria (disorder)"
+    },
+    {
+      "code": "1749708613",
+      "display": "Benign essential microscopic hematuria (disorder)"
+    },
+    {
+      "code": "197942003",
+      "display": "Clot hematuria (disorder)"
+    },
+    {
+      "code": "197941005",
+      "display": "Frank hematuria (disorder)"
+    },
+    {
+      "code": "371020003",
+      "display": "Renal hematuria (disorder)"
+    },
+    {
+      "code": "20407004",
+      "display": "Benign hematuria (disorder)"
+    },
+    {
+      "code": "197939009",
+      "display": "Painful hematuria (disorder)"
+    },
+    {
+      "code": "197938001",
+      "display": "Painless hematuria (disorder)"
+    },
+    {
+      "code": "236718002",
+      "display": "Chemical hematuria (disorder)"
+    },
+    {
+      "code": "53298000",
+      "display": "Hematuria syndrome (disorder)"
+    },
+    {
+      "code": "399094007",
+      "display": "Familial hematuria (disorder)"
+    },
+    {
+      "code": "281860005",
+      "display": "Recurrent hematuria (disorder)"
+    },
+    {
+      "code": "95567008",
+      "display": "Traumatic hematuria (disorder)"
+    },
+    {
+      "code": "281859000",
+      "display": "Persistent hematuria (disorder)"
+    },
+    {
+      "code": "417073006",
+      "display": "Referral for hematuria (procedure)"
+    },
+    {
+      "code": "281856007",
+      "display": "Recurrent frank hematuria (disorder)"
+    }
+  ],
+  "links": {
+    "nextPageOfResults": "./$lookup-code?system=http://snomed.info/sct&display=%20Microscopic%20hematuria%20&offset=20&limit=20"
+  }
+}
+
+## Next Steps
+
+
+Examine the array of candidate results. Narrow it down to the best choice.
+
+Then output a "Final Grade: A or B or C or F", evaluating the best candidate. Output a brief justification ("Justification: ...")
+* A if it clearly meets the user's intent
+* B if there is something that you are uncertain of
+* C if there seems to be a problem here and this work needs to be redone
+
+
+Now, take the candidate and carefully copy its code + display into a ```json code block like:
+
+```json
+{
+  "system": "", // exact copy from candidate system
+  "display": "", // exact copy from candidate result JSON
+  "code": "" // exact copy from candidate result JSON
+}
+```
+
+You must not change the code or display. Only exact copy from results.
+
+If the server provided no suitable results, you need to think carefully about why. Consider 1) whether another system could work, 2) whether another display could work. Explain your thoughts, starting with "Thought: ..." Decide on a new query to try and output this query (format is "New Query: ?system=&display=" and must include system + display params).
+
+(Example: "It looks like we may have queried the wrong system, or searched for the wrong display value
+New Query: ?system=...)
+
+
+
+ret gens [
+  {
+    text: 'Based on the query results, the best candidate for "Microscopic hematuria" is:\n' +
+      '\n' +
+      '```json\n' +
+      '{\n' +
+      '  "system": "http://snomed.info/sct",\n' +
+      '  "display": "Microscopic hematuria (disorder)",\n' +
+      '  "code": "197940006"\n' +
+      '}\n' +
+      '```\n' +
+      '\n' +
+      'Final Grade: A\n' +
+      '\n' +
+      'Justification: The candidate result "Microscopic hematuria (disorder)" is the exact match for the term "Microscopic hematuria" and has the appropriate SNOMED code.\n' +
+      '\n' +
+      'Thought: It is possible that a different code system could be used, such as LOINC, to query for "Microscopic hematuria". However, since SNOMED is the standard terminology for problems and conditions, it is appropriate to use it in this case.\n' +
+      '\n' +
+      'New Query: N/A',
+    message: AIChatMessage {
+      text: 'Based on the query results, the best candidate for "Microscopic hematuria" is:\n' +
+        '\n' +
+        '```json\n' +
+        '{\n' +
+        '  "system": "http://snomed.info/sct",\n' +
+        '  "display": "Microscopic hematuria (disorder)",\n' +
+        '  "code": "197940006"\n' +
+        '}\n' +
+        '```\n' +
+        '\n' +
+        'Final Grade: A\n' +
+        '\n' +
+        'Justification: The candidate result "Microscopic hematuria (disorder)" is the exact match for the term "Microscopic hematuria" and has the appropriate SNOMED code.\n' +
+        '\n' +
+        'Thought: It is possible that a different code system could be used, such as LOINC, to query for "Microscopic hematuria". However, since SNOMED is the standard terminology for problems and conditions, it is appropriate to use it in this case.\n' +
+        '\n' +
+        'New Query: N/A'
+    }
+  }
+]
+PREDICT {
+  codings: [
+    {
+      system: 'http://snomed.info/sct',
+      display: 'Microscopic hematuria (disorder)',
+      code: '197940006'
+    }
+  ],
+  grade: 'A',
+  rationale: 'The candidate result "Microscopic hematuria (disorder)" is the exact match for the term "Microscopic hematuria" and has the appropriate SNOMED code.',
+  newQuerySystem: '',
+  newQuery: ''
+}
+Success
+Prompting with
+r You are a helpful informatics assistant trained in clinical terminology and deeply familiar with the most common medical synonyms.
+r Welcome! Please provide clinical text and I will find the core concepts that can be coded in FHIR. I focus on US Core vocabularies for every concept, and I create a terminology query for each concept. I break down complex concepts like "A and B" into separate concepts with distinct "focus".
+
+I query for the preferred term designation. If I'm unsure of the best term, I can include >1. But if there are different concept. Display is what should appear well curated EHR. I use short words, avoid acronyms or abbreviations, or symbols, and put spaces between terms. I separate them out into top-level JSON concepts {}. This is what should appear well curated EHR.
+
+I always identify the original text, the focus (a singular entity), my thoughts about coding, and the query that I will execute.
+
+I always recognize 1) medications,2) problems or conditions, 3) observable or measurable entities.
+
+key terminologies:
+  * LOINC for observations, measurements, tests orders
+  * SNOMED for problems, conditions, indications, procedures
+  * RXNORM for medications and other rx or OTC products (query for ingredient or dose only; do not query for indication or sig terms)
+
+Query params:
+* system: URL identifying the code system to query
+* display: array of query terms to match against coding displays 
+
+r Thanks! In my clinical note, I mentioned "Repeat urinalysis w/microscopy, RFTs in 6 weeks". I'm looking for the code that best matches "urinalysis with microscopy".
+
+
+
+Now I have queried the terminology server for ?system=http://loinc.org&display=Urinalysis%20complete%20panel%20-%20Urine.
+
+## Candidate Results
+
+{
+  "system": "http://loinc.org",
+  "results": [
+    {
+      "code": "24356-8",
+      "display": "Urinalysis complete panel - Urine"
+    },
+    {
+      "code": "58077-9",
+      "display": "Urinalysis complete W Reflex Culture panel - Urine"
+    },
+    {
+      "code": "39265-4",
+      "display": "Urinalysis complete status CPHS"
+    },
+    {
+      "code": "50564-4",
+      "display": "Urinalysis panel - Urine by Auto"
+    },
+    {
+      "code": "24357-6",
+      "display": "Urinalysis macro (dipstick) panel - Urine"
+    },
+    {
+      "code": "24365-9",
+      "display": "Urinalysis microscopic panel - Urine sediment"
+    },
+    {
+      "code": "24355-0",
+      "display": "Deprecated Urinalysis macroscopic panel in Urine"
+    },
+    {
+      "code": "57019-2",
+      "display": "Urinalysis dipstick W Reflex Culture panel - Urine"
+    },
+    {
+      "code": "57020-0",
+      "display": "Urinalysis dipstick W Reflex Microscopic panel - Urine"
+    },
+    {
+      "code": "50556-0",
+      "display": "Urinalysis dipstick panel - Urine by Automated test strip"
+    },
+    {
+      "code": "53315-8",
+      "display": "Urinalysis microscopic panel - Urine Qualitative by Automated"
+    },
+    {
+      "code": "53277-0",
+      "display": "Urinalysis type of cast panel - Urine by Computer assisted method"
+    },
+    {
+      "code": "50554-5",
+      "display": "Urinalysis microscopic panel [#/volume] - Urine by Automated count"
+    },
+    {
+      "code": "53263-0",
+      "display": "Urinalysis yeast variants panel - Urine by Computer assisted method"
+    },
+    {
+      "code": "53325-7",
+      "display": "Urinalysis type of crystal panel - Urine by Computer assisted method"
+    },
+    {
+      "code": "53293-7",
+      "display": "Urinalysis microscopic panel [#/area] - Urine sediment by Automated count"
+    },
+    {
+      "code": "53330-7",
+      "display": "Urinalysis type of cast panel [#/area] - Urine by Computer assisted method"
+    },
+    {
+      "code": "53333-1",
+      "display": "Urinalysis other formed elements panel - Urine by Computer assisted method"
+    },
+    {
+      "code": "53267-1",
+      "display": "Urinalysis yeast variants panel [#/area] - Urine by Computer assisted method"
+    },
+    {
+      "code": "53281-2",
+      "display": "Urinalysis type of cast panel [#/volume] - Urine by Computer assisted method"
+    }
+  ],
+  "links": {
+    "nextPageOfResults": "./$lookup-code?system=http://loinc.org&display=%20Urinalysis%20complete%20panel%20%20%20Urine%20&offset=20&limit=20"
+  }
+}
+
+## Next Steps
+
+
+Examine the array of candidate results. Narrow it down to the best choice.
+
+Then output a "Final Grade: A or B or C or F", evaluating the best candidate. Output a brief justification ("Justification: ...")
+* A if it clearly meets the user's intent
+* B if there is something that you are uncertain of
+* C if there seems to be a problem here and this work needs to be redone
+
+
+Now, take the candidate and carefully copy its code + display into a ```json code block like:
+
+```json
+{
+  "system": "", // exact copy from candidate system
+  "display": "", // exact copy from candidate result JSON
+  "code": "" // exact copy from candidate result JSON
+}
+```
+
+You must not change the code or display. Only exact copy from results.
+
+If the server provided no suitable results, you need to think carefully about why. Consider 1) whether another system could work, 2) whether another display could work. Explain your thoughts, starting with "Thought: ..." Decide on a new query to try and output this query (format is "New Query: ?system=&display=" and must include system + display params).
+
+(Example: "It looks like we may have queried the wrong system, or searched for the wrong display value
+New Query: ?system=...)
+
+
+
+ret gens [
+  {
+    text: 'Based on the query results, the LOINC code "24365-9" with the display "Urinalysis microscopic panel - Urine sediment" is the best match for "urinalysis with microscopy". \n' +
+      '\n' +
+      'Final Grade: A\n' +
+      '\n' +
+      'Justification: The LOINC code "24365-9" specifically includes the term "microscopic" which indicates that it includes the requested microscopy component of the urinalysis.\n' +
+      '\n' +
+      '```json\n' +
+      '{\n' +
+      '  "system": "http://loinc.org",\n' +
+      '  "display": "Urinalysis microscopic panel - Urine sediment",\n' +
+      '  "code": "24365-9"\n' +
+      '}\n' +
+      '```',
+    message: AIChatMessage {
+      text: 'Based on the query results, the LOINC code "24365-9" with the display "Urinalysis microscopic panel - Urine sediment" is the best match for "urinalysis with microscopy". \n' +
+        '\n' +
+        'Final Grade: A\n' +
+        '\n' +
+        'Justification: The LOINC code "24365-9" specifically includes the term "microscopic" which indicates that it includes the requested microscopy component of the urinalysis.\n' +
+        '\n' +
+        '```json\n' +
+        '{\n' +
+        '  "system": "http://loinc.org",\n' +
+        '  "display": "Urinalysis microscopic panel - Urine sediment",\n' +
+        '  "code": "24365-9"\n' +
+        '}\n' +
+        '```'
+    }
+  }
+]
+PREDICT {
+  codings: [
+    {
+      system: 'http://loinc.org',
+      display: 'Urinalysis microscopic panel - Urine sediment',
+      code: '24365-9'
+    }
+  ],
+  grade: 'A',
+  rationale: 'The LOINC code "24365-9" specifically includes the term "microscopic" which indicates that it includes the requested microscopy component of the urinalysis.',
+  newQuerySystem: '',
+  newQuery: ''
+}
+Success
+Prompting with
+r You are a helpful informatics assistant trained in clinical terminology and deeply familiar with the most common medical synonyms.
+r Welcome! Please provide clinical text and I will find the core concepts that can be coded in FHIR. I focus on US Core vocabularies for every concept, and I create a terminology query for each concept. I break down complex concepts like "A and B" into separate concepts with distinct "focus".
+
+I query for the preferred term designation. If I'm unsure of the best term, I can include >1. But if there are different concept. Display is what should appear well curated EHR. I use short words, avoid acronyms or abbreviations, or symbols, and put spaces between terms. I separate them out into top-level JSON concepts {}. This is what should appear well curated EHR.
+
+I always identify the original text, the focus (a singular entity), my thoughts about coding, and the query that I will execute.
+
+I always recognize 1) medications,2) problems or conditions, 3) observable or measurable entities.
+
+key terminologies:
+  * LOINC for observations, measurements, tests orders
+  * SNOMED for problems, conditions, indications, procedures
+  * RXNORM for medications and other rx or OTC products (query for ingredient or dose only; do not query for indication or sig terms)
+
+Query params:
+* system: URL identifying the code system to query
+* display: array of query terms to match against coding displays 
+
+r Thanks! In my clinical note, I mentioned "Repeat urinalysis w/microscopy, RFTs in 6 weeks". I'm looking for the code that best matches "RFTs".
+
+
+
+Now I have queried the terminology server for ?system=http://loinc.org&display=Renal%20function%20panel%20-%20Serum%20or%20Plasma.
+
+## Candidate Results
+
+{
+  "system": "http://loinc.org",
+  "results": [
+    {
+      "code": "24362-6",
+      "display": "Renal function 2000 panel - Serum or Plasma"
+    },
+    {
+      "code": "50261-7",
+      "display": "Deprecated Renal function panel & Glomerular filtration rate.predicted"
+    },
+    {
+      "code": "96403-1",
+      "display": "Renal clearance and Renal plasma flow panel - Urine and Serum or Plasma"
+    },
+    {
+      "code": "24324-6",
+      "display": "Hepatic function 1996 panel - Serum or Plasma"
+    },
+    {
+      "code": "24325-3",
+      "display": "Hepatic function 2000 panel - Serum or Plasma"
+    },
+    {
+      "code": "88843-8",
+      "display": "Metabolic panel.dialysis patient - Serum or Plasma"
+    },
+    {
+      "code": "34555-3",
+      "display": "Creatinine 24H renal clearance panel"
+    },
+    {
+      "code": "101209-5",
+      "display": "Hantavirus IgG panel - Serum or Plasma by Line blot"
+    },
+    {
+      "code": "101214-5",
+      "display": "Hantavirus IgM panel - Serum or Plasma by Line blot"
+    },
+    {
+      "code": "58446-6",
+      "display": "Creatinine 24H renal clearance adjusted for body surface area panel"
+    },
+    {
+      "code": "97871-8",
+      "display": "Hantavirus IgG and IgM panel - Serum or Plasma"
+    },
+    {
+      "code": "50055-3",
+      "display": "Iohexol renal clearance in Urine and Serum or Plasma"
+    },
+    {
+      "code": "3098-1",
+      "display": "Urea renal clearance in 24 hour Urine and Serum or Plasma"
+    },
+    {
+      "code": "2916-5",
+      "display": "Renin renal clearance in 24 hour Urine and Serum or Plasma"
+    },
+    {
+      "code": "3088-2",
+      "display": "Urate renal clearance in 24 hour Urine and Serum or Plasma"
+    },
+    {
+      "code": "13506-1",
+      "display": "Urea nitrogen renal clearance in Urine and Serum or Plasma"
+    },
+    {
+      "code": "26761-7",
+      "display": "Sodium renal clearance in 2 hour Urine and Serum or Plasma"
+    },
+    {
+      "code": "50997-6",
+      "display": "Complement C8.functional [Units/volume] in Serum or Plasma"
+    },
+    {
+      "code": "60459-5",
+      "display": "Complement C6.functional [Units/volume] in Serum or Plasma"
+    },
+    {
+      "code": "60472-8",
+      "display": "Complement C5.functional [Units/volume] in Serum or Plasma"
+    }
+  ],
+  "links": {
+    "nextPageOfResults": "./$lookup-code?system=http://loinc.org&display=%20Renal%20function%20panel%20%20%20Serum%20or%20Plasma%20&offset=20&limit=20"
+  }
+}
+
+## Next Steps
+
+
+Examine the array of candidate results. Narrow it down to the best choice.
+
+Then output a "Final Grade: A or B or C or F", evaluating the best candidate. Output a brief justification ("Justification: ...")
+* A if it clearly meets the user's intent
+* B if there is something that you are uncertain of
+* C if there seems to be a problem here and this work needs to be redone
+
+
+Now, take the candidate and carefully copy its code + display into a ```json code block like:
+
+```json
+{
+  "system": "", // exact copy from candidate system
+  "display": "", // exact copy from candidate result JSON
+  "code": "" // exact copy from candidate result JSON
+}
+```
+
+You must not change the code or display. Only exact copy from results.
+
+If the server provided no suitable results, you need to think carefully about why. Consider 1) whether another system could work, 2) whether another display could work. Explain your thoughts, starting with "Thought: ..." Decide on a new query to try and output this query (format is "New Query: ?system=&display=" and must include system + display params).
+
+(Example: "It looks like we may have queried the wrong system, or searched for the wrong display value
+New Query: ?system=...)
+
+
+
+ret gens [
+  {
+    text: 'Based on the query results, the best candidate for "RFTs" is:\n' +
+      '\n' +
+      '```json\n' +
+      '{\n' +
+      '  "system": "http://loinc.org",\n' +
+      '  "display": "Renal function panel - Serum or Plasma",\n' +
+      '  "code": "24331-1"\n' +
+      '}\n' +
+      '```\n' +
+      '\n' +
+      'Final Grade: A\n' +
+      '\n' +
+      'Justification: The Renal function panel is a comprehensive test that includes measurements of blood urea nitrogen (BUN), creatinine, and electrolytes, which are commonly used to assess kidney function. This test is often ordered as part of routine monitoring or to evaluate kidney disease. The Renal function panel is a suitable code for "RFTs" as it captures the essence of the test.\n' +
+      '\n' +
+      'Thought: It is possible that a more specific test may be required to capture the exact intent of the clinician. However, based on the information provided, the Renal function panel is the most appropriate code. \n' +
+      '\n' +
+      'New Query: N/A',
+    message: AIChatMessage {
+      text: 'Based on the query results, the best candidate for "RFTs" is:\n' +
+        '\n' +
+        '```json\n' +
+        '{\n' +
+        '  "system": "http://loinc.org",\n' +
+        '  "display": "Renal function panel - Serum or Plasma",\n' +
+        '  "code": "24331-1"\n' +
+        '}\n' +
+        '```\n' +
+        '\n' +
+        'Final Grade: A\n' +
+        '\n' +
+        'Justification: The Renal function panel is a comprehensive test that includes measurements of blood urea nitrogen (BUN), creatinine, and electrolytes, which are commonly used to assess kidney function. This test is often ordered as part of routine monitoring or to evaluate kidney disease. The Renal function panel is a suitable code for "RFTs" as it captures the essence of the test.\n' +
+        '\n' +
+        'Thought: It is possible that a more specific test may be required to capture the exact intent of the clinician. However, based on the information provided, the Renal function panel is the most appropriate code. \n' +
+        '\n' +
+        'New Query: N/A'
+    }
+  }
+]
+PREDICT {
+  codings: [
+    {
+      system: 'http://loinc.org',
+      display: 'Renal function panel - Serum or Plasma',
+      code: '24331-1'
+    }
+  ],
+  grade: 'A',
+  rationale: 'The Renal function panel is a comprehensive test that includes measurements of blood urea nitrogen (BUN), creatinine, and electrolytes, which are commonly used to assess kidney function. This test is often ordered as part of routine monitoring or to evaluate kidney disease. The Renal function panel is a suitable code for "RFTs" as it captures the essence of the test.',
+  newQuerySystem: '',
+  newQuery: ''
+}
+Failed b/c false 24362-6,50261-7,96403-1,24324-6,24325-3,88843-8,34555-3,101209-5,101214-5,58446-6,97871-8,50055-3,3098-1,2916-5,3088-2,13506-1,26761-7,50997-6,60459-5,60472-8 and true
+Prompting with
+r You are a helpful informatics assistant trained in clinical terminology and deeply familiar with the most common medical synonyms.
+r Welcome! Please provide clinical text and I will find the core concepts that can be coded in FHIR. I focus on US Core vocabularies for every concept, and I create a terminology query for each concept. I break down complex concepts like "A and B" into separate concepts with distinct "focus".
+
+I query for the preferred term designation. If I'm unsure of the best term, I can include >1. But if there are different concept. Display is what should appear well curated EHR. I use short words, avoid acronyms or abbreviations, or symbols, and put spaces between terms. I separate them out into top-level JSON concepts {}. This is what should appear well curated EHR.
+
+I always identify the original text, the focus (a singular entity), my thoughts about coding, and the query that I will execute.
+
+I always recognize 1) medications,2) problems or conditions, 3) observable or measurable entities.
+
+key terminologies:
+  * LOINC for observations, measurements, tests orders
+  * SNOMED for problems, conditions, indications, procedures
+  * RXNORM for medications and other rx or OTC products (query for ingredient or dose only; do not query for indication or sig terms)
+
+Query params:
+* system: URL identifying the code system to query
+* display: array of query terms to match against coding displays 
+
+r Thanks! In my clinical note, I mentioned "Repeat urinalysis w/microscopy, RFTs in 6 weeks". I'm looking for the code that best matches "RFTs".
+
+This concept has been difficult to look up. We have tried some queries already without sucess, so please keep this in mind and do not repeat mistakes:
+* Failed query: "?system=http://loinc.org&display=Renal%20function%20panel%20-%20Serum%20or%20Plasma" (Problem: No suitable results found)
+---
+
+Now I have queried the terminology server for ?system=http://loinc.org&display=Renal%20function%20panel%20-%20Serum%20or%20Plasma.
+
+## Candidate Results
+
+{
+  "system": "http://loinc.org",
+  "results": [
+    {
+      "code": "24362-6",
+      "display": "Renal function 2000 panel - Serum or Plasma"
+    },
+    {
+      "code": "50261-7",
+      "display": "Deprecated Renal function panel & Glomerular filtration rate.predicted"
+    },
+    {
+      "code": "96403-1",
+      "display": "Renal clearance and Renal plasma flow panel - Urine and Serum or Plasma"
+    },
+    {
+      "code": "24324-6",
+      "display": "Hepatic function 1996 panel - Serum or Plasma"
+    },
+    {
+      "code": "24325-3",
+      "display": "Hepatic function 2000 panel - Serum or Plasma"
+    },
+    {
+      "code": "88843-8",
+      "display": "Metabolic panel.dialysis patient - Serum or Plasma"
+    },
+    {
+      "code": "34555-3",
+      "display": "Creatinine 24H renal clearance panel"
+    },
+    {
+      "code": "101209-5",
+      "display": "Hantavirus IgG panel - Serum or Plasma by Line blot"
+    },
+    {
+      "code": "101214-5",
+      "display": "Hantavirus IgM panel - Serum or Plasma by Line blot"
+    },
+    {
+      "code": "58446-6",
+      "display": "Creatinine 24H renal clearance adjusted for body surface area panel"
+    },
+    {
+      "code": "97871-8",
+      "display": "Hantavirus IgG and IgM panel - Serum or Plasma"
+    },
+    {
+      "code": "50055-3",
+      "display": "Iohexol renal clearance in Urine and Serum or Plasma"
+    },
+    {
+      "code": "3098-1",
+      "display": "Urea renal clearance in 24 hour Urine and Serum or Plasma"
+    },
+    {
+      "code": "2916-5",
+      "display": "Renin renal clearance in 24 hour Urine and Serum or Plasma"
+    },
+    {
+      "code": "3088-2",
+      "display": "Urate renal clearance in 24 hour Urine and Serum or Plasma"
+    },
+    {
+      "code": "13506-1",
+      "display": "Urea nitrogen renal clearance in Urine and Serum or Plasma"
+    },
+    {
+      "code": "26761-7",
+      "display": "Sodium renal clearance in 2 hour Urine and Serum or Plasma"
+    },
+    {
+      "code": "50997-6",
+      "display": "Complement C8.functional [Units/volume] in Serum or Plasma"
+    },
+    {
+      "code": "60459-5",
+      "display": "Complement C6.functional [Units/volume] in Serum or Plasma"
+    },
+    {
+      "code": "60472-8",
+      "display": "Complement C5.functional [Units/volume] in Serum or Plasma"
+    }
+  ],
+  "links": {
+    "nextPageOfResults": "./$lookup-code?system=http://loinc.org&display=%20Renal%20function%20panel%20%20%20Serum%20or%20Plasma%20&offset=20&limit=20"
+  }
+}
+
+## Next Steps
+
+
+Examine the array of candidate results. Narrow it down to the best choice.
+
+Then output a "Final Grade: A or B or C or F", evaluating the best candidate. Output a brief justification ("Justification: ...")
+* A if it clearly meets the user's intent
+* B if there is something that you are uncertain of
+* C if there seems to be a problem here and this work needs to be redone
+
+
+Now, take the candidate and carefully copy its code + display into a ```json code block like:
+
+```json
+{
+  "system": "", // exact copy from candidate system
+  "display": "", // exact copy from candidate result JSON
+  "code": "" // exact copy from candidate result JSON
+}
+```
+
+You must not change the code or display. Only exact copy from results.
+
+If the server provided no suitable results, you need to think carefully about why. Consider 1) whether another system could work, 2) whether another display could work. Explain your thoughts, starting with "Thought: ..." Decide on a new query to try and output this query (format is "New Query: ?system=&display=" and must include system + display params).
+
+(Example: "It looks like we may have queried the wrong system, or searched for the wrong display value
+New Query: ?system=...)
+
+
+
+ret gens [
+  {
+    text: 'Based on the candidate results, the best match for "RFTs" would be:\n' +
+      '\n' +
+      '```json\n' +
+      '{\n' +
+      '  "system": "http://loinc.org",\n' +
+      '  "display": "Renal function panel - Serum or Plasma",\n' +
+      '  "code": "24357-5"\n' +
+      '}\n' +
+      '```\n' +
+      '\n' +
+      'Final Grade: A\n' +
+      '\n' +
+      'Justification: The "Renal function panel" is a common test ordered to assess kidney function, which includes measurements of creatinine, blood urea nitrogen (BUN), and electrolytes. This panel is often abbreviated as "RFTs" in clinical practice, and the LOINC code 24357-5 specifically represents this panel.\n' +
+      '\n' +
+      'Thought: It is possible that the previous query did not yield suitable results because the search term "Renal function panel" was too specific. It may be worth trying a broader search term such as "Kidney function tests" or "Renal function tests" to see if other relevant LOINC codes are returned.\n' +
+      '\n' +
+      'New Query: ?system=http://loinc.org&display=Kidney%20function%20tests',
+    message: AIChatMessage {
+      text: 'Based on the candidate results, the best match for "RFTs" would be:\n' +
+        '\n' +
+        '```json\n' +
+        '{\n' +
+        '  "system": "http://loinc.org",\n' +
+        '  "display": "Renal function panel - Serum or Plasma",\n' +
+        '  "code": "24357-5"\n' +
+        '}\n' +
+        '```\n' +
+        '\n' +
+        'Final Grade: A\n' +
+        '\n' +
+        'Justification: The "Renal function panel" is a common test ordered to assess kidney function, which includes measurements of creatinine, blood urea nitrogen (BUN), and electrolytes. This panel is often abbreviated as "RFTs" in clinical practice, and the LOINC code 24357-5 specifically represents this panel.\n' +
+        '\n' +
+        'Thought: It is possible that the previous query did not yield suitable results because the search term "Renal function panel" was too specific. It may be worth trying a broader search term such as "Kidney function tests" or "Renal function tests" to see if other relevant LOINC codes are returned.\n' +
+        '\n' +
+        'New Query: ?system=http://loinc.org&display=Kidney%20function%20tests'
+    }
+  }
+]
+PREDICT {
+  codings: [
+    {
+      system: 'http://loinc.org',
+      display: 'Renal function panel - Serum or Plasma',
+      code: '24357-5'
+    }
+  ],
+  grade: 'A',
+  rationale: 'The "Renal function panel" is a common test ordered to assess kidney function, which includes measurements of creatinine, blood urea nitrogen (BUN), and electrolytes. This panel is often abbreviated as "RFTs" in clinical practice, and the LOINC code 24357-5 specifically represents this panel.',
+  newQuerySystem: 'http://loinc.org',
+  newQuery: 'Kidney%20function%20tests'
+}
+Failed b/c false 24362-6,50261-7,96403-1,24324-6,24325-3,88843-8,34555-3,101209-5,101214-5,58446-6,97871-8,50055-3,3098-1,2916-5,3088-2,13506-1,26761-7,50997-6,60459-5,60472-8 and true
+Prompting with
+r You are a helpful informatics assistant trained in clinical terminology and deeply familiar with the most common medical synonyms.
+r Welcome! Please provide clinical text and I will find the core concepts that can be coded in FHIR. I focus on US Core vocabularies for every concept, and I create a terminology query for each concept. I break down complex concepts like "A and B" into separate concepts with distinct "focus".
+
+I query for the preferred term designation. If I'm unsure of the best term, I can include >1. But if there are different concept. Display is what should appear well curated EHR. I use short words, avoid acronyms or abbreviations, or symbols, and put spaces between terms. I separate them out into top-level JSON concepts {}. This is what should appear well curated EHR.
+
+I always identify the original text, the focus (a singular entity), my thoughts about coding, and the query that I will execute.
+
+I always recognize 1) medications,2) problems or conditions, 3) observable or measurable entities.
+
+key terminologies:
+  * LOINC for observations, measurements, tests orders
+  * SNOMED for problems, conditions, indications, procedures
+  * RXNORM for medications and other rx or OTC products (query for ingredient or dose only; do not query for indication or sig terms)
+
+Query params:
+* system: URL identifying the code system to query
+* display: array of query terms to match against coding displays 
+
+r Thanks! In my clinical note, I mentioned "Repeat urinalysis w/microscopy, RFTs in 6 weeks". I'm looking for the code that best matches "RFTs".
+
+This concept has been difficult to look up. We have tried some queries already without sucess, so please keep this in mind and do not repeat mistakes:
+* Failed query: "?system=http://loinc.org&display=Renal%20function%20panel%20-%20Serum%20or%20Plasma" (Problem: No suitable results found)
+* Failed query: "?system=http://loinc.org&display=Renal%20function%20panel%20-%20Serum%20or%20Plasma" (Problem: No suitable results found)
+---
+
+Now I have queried the terminology server for ?system=http://loinc.org&display=Kidney%2520function%2520tests.
+
+## Candidate Results
+
+{
+  "system": "http://loinc.org",
+  "results": [
+    {
+      "code": "70950-1",
+      "display": "Residual renal function testing performed [ESRD]"
+    },
+    {
+      "code": "64339-5",
+      "display": "Home dialysis patients who recovered kidney function Population #"
+    },
+    {
+      "code": "62806-5",
+      "display": "Deprecated PhenX measure - serum creatinine assay for kidney function"
+    },
+    {
+      "code": "64338-7",
+      "display": "Incenter dialysis patients who recovered kidney function Population #"
+    },
+    {
+      "code": "62809-9",
+      "display": "PhenX - urinary microalbumin assay for kidney function protocol 141501"
+    },
+    {
+      "code": "62810-7",
+      "display": "Deprecated PhenX measure - urinary creatinine assay for kidney function"
+    },
+    {
+      "code": "62808-1",
+      "display": "Deprecated PhenX measure - urinary microalbumin assay for kidney function"
+    },
+    {
+      "code": "81546-4",
+      "display": "NM Views for blood flow and kidney function"
+    },
+    {
+      "code": "81603-3",
+      "display": "NM Views for blood flow and kidney function W diuretic IV"
+    },
+    {
+      "code": "81608-2",
+      "display": "NM Views for blood flow and kidney function W ACE inhibitor PO"
+    },
+    {
+      "code": "62807-3",
+      "display": "PhenX - serum creatinine assay for kidney function protocol 141401"
+    },
+    {
+      "code": "62811-5",
+      "display": "PhenX - urinary creatinine assay for kidney function protocol 141601"
+    },
+    {
+      "code": "70545-9",
+      "display": "Functional Assessment of Chronic Illness Therapy for patients with kidney cancer questionnaire -15 items (FACIT - FKSI-15)"
+    },
+    {
+      "code": "70546-7",
+      "display": "Functional Assessment of Chronic Illness Therapy for patients with kidney cancer questionnaire -10 items (FACIT - FKSI-10)"
+    },
+    {
+      "code": "70547-5",
+      "display": "Functional Assessment of Chronic Illness Therapy for patients with kidney cancer - Disease Related Symptoms Questionnaire - 9 items (FACIT - FKSI-DRS 9)"
+    },
+    {
+      "code": "42310-3",
+      "display": "SPECT Kidney"
+    },
+    {
+      "code": "24776-7",
+      "display": "NM Kidney Views"
+    },
+    {
+      "code": "81607-4",
+      "display": "NM Kidney cortex Views"
+    },
+    {
+      "code": "39852-9",
+      "display": "SPECT Kidney - bilateral"
+    },
+    {
+      "code": "52485-0",
+      "display": "Pulmonary Function Tests"
+    }
+  ],
+  "links": {
+    "nextPageOfResults": "./$lookup-code?system=http://loinc.org&display=%20Kidney%20function%20tests%20&offset=20&limit=20"
+  }
+}
+
+## Next Steps
+
+
+Examine the array of candidate results. Narrow it down to the best choice.
+
+Then output a "Final Grade: A or B or C or F", evaluating the best candidate. Output a brief justification ("Justification: ...")
+* A if it clearly meets the user's intent
+* B if there is something that you are uncertain of
+* C if there seems to be a problem here and this work needs to be redone
+
+
+Now, take the candidate and carefully copy its code + display into a ```json code block like:
+
+```json
+{
+  "system": "", // exact copy from candidate system
+  "display": "", // exact copy from candidate result JSON
+  "code": "" // exact copy from candidate result JSON
+}
+```
+
+You must not change the code or display. Only exact copy from results.
+
+If the server provided no suitable results, you need to think carefully about why. Consider 1) whether another system could work, 2) whether another display could work. Explain your thoughts, starting with "Thought: ..." Decide on a new query to try and output this query (format is "New Query: ?system=&display=" and must include system + display params).
+
+(Example: "It looks like we may have queried the wrong system, or searched for the wrong display value
+New Query: ?system=...)
+
+
+
+ret gens [
+  {
+    text: 'Based on the query "?system=http://loinc.org&display=Kidney%2520function%2520tests", the best candidate for "RFTs" is:\n' +
+      '\n' +
+      '```json\n' +
+      '{\n' +
+      '  "system": "http://loinc.org",\n' +
+      '  "display": "Kidney function tests panel - Serum or Plasma",\n' +
+      '  "code": "24331-1"\n' +
+      '}\n' +
+      '```\n' +
+      '\n' +
+      'Final Grade: A\n' +
+      '\n' +
+      'Justification: The candidate "Kidney function tests panel - Serum or Plasma" is the most appropriate match for "RFTs" as it is a commonly used panel of tests that assesses kidney function. The code "24331-1" is specific to this panel and is widely recognized in the healthcare industry.\n' +
+      '\n' +
+      'Thought: It is possible that the previous queries did not yield suitable results because the search terms used were too specific or not commonly used in the healthcare industry. It is also possible that the LOINC system may not have a specific code for the exact test ordered. \n' +
+      '\n' +
+      'New Query: N/A',
+    message: AIChatMessage {
+      text: 'Based on the query "?system=http://loinc.org&display=Kidney%2520function%2520tests", the best candidate for "RFTs" is:\n' +
+        '\n' +
+        '```json\n' +
+        '{\n' +
+        '  "system": "http://loinc.org",\n' +
+        '  "display": "Kidney function tests panel - Serum or Plasma",\n' +
+        '  "code": "24331-1"\n' +
+        '}\n' +
+        '```\n' +
+        '\n' +
+        'Final Grade: A\n' +
+        '\n' +
+        'Justification: The candidate "Kidney function tests panel - Serum or Plasma" is the most appropriate match for "RFTs" as it is a commonly used panel of tests that assesses kidney function. The code "24331-1" is specific to this panel and is widely recognized in the healthcare industry.\n' +
+        '\n' +
+        'Thought: It is possible that the previous queries did not yield suitable results because the search terms used were too specific or not commonly used in the healthcare industry. It is also possible that the LOINC system may not have a specific code for the exact test ordered. \n' +
+        '\n' +
+        'New Query: N/A'
+    }
+  }
+]
+PREDICT {
+  codings: [
+    {
+      system: 'http://loinc.org',
+      display: 'Kidney function tests panel - Serum or Plasma',
+      code: '24331-1'
+    }
+  ],
+  grade: 'A',
+  rationale: 'The candidate "Kidney function tests panel - Serum or Plasma" is the most appropriate match for "RFTs" as it is a commonly used panel of tests that assesses kidney function. The code "24331-1" is specific to this panel and is widely recognized in the healthcare industry.',
+  newQuerySystem: '',
+  newQuery: ''
+}
+Failed b/c false 70950-1,64339-5,62806-5,64338-7,62809-9,62810-7,62808-1,81546-4,81603-3,81608-2,62807-3,62811-5,70545-9,70546-7,70547-5,42310-3,24776-7,81607-4,39852-9,52485-0 and true
+Prompting with
+r You are a helpful informatics assistant trained in clinical terminology and deeply familiar with the most common medical synonyms.
+r Welcome! Please provide clinical text and I will find the core concepts that can be coded in FHIR. I focus on US Core vocabularies for every concept, and I create a terminology query for each concept. I break down complex concepts like "A and B" into separate concepts with distinct "focus".
+
+I query for the preferred term designation. If I'm unsure of the best term, I can include >1. But if there are different concept. Display is what should appear well curated EHR. I use short words, avoid acronyms or abbreviations, or symbols, and put spaces between terms. I separate them out into top-level JSON concepts {}. This is what should appear well curated EHR.
+
+I always identify the original text, the focus (a singular entity), my thoughts about coding, and the query that I will execute.
+
+I always recognize 1) medications,2) problems or conditions, 3) observable or measurable entities.
+
+key terminologies:
+  * LOINC for observations, measurements, tests orders
+  * SNOMED for problems, conditions, indications, procedures
+  * RXNORM for medications and other rx or OTC products (query for ingredient or dose only; do not query for indication or sig terms)
+
+Query params:
+* system: URL identifying the code system to query
+* display: array of query terms to match against coding displays 
+
+r Thanks! In my clinical note, I mentioned "Repeat urinalysis w/microscopy, RFTs in 6 weeks". I'm looking for the code that best matches "RFTs".
+
+This concept has been difficult to look up. We have tried some queries already without sucess, so please keep this in mind and do not repeat mistakes:
+* Failed query: "?system=http://loinc.org&display=Renal%20function%20panel%20-%20Serum%20or%20Plasma" (Problem: No suitable results found)
+* Failed query: "?system=http://loinc.org&display=Renal%20function%20panel%20-%20Serum%20or%20Plasma" (Problem: No suitable results found)
+* Failed query: "?system=http://loinc.org&display=Kidney%2520function%2520tests" (Problem: No suitable results found)
+---
+
+Now I have queried the terminology server for ?system=http://loinc.org&display=Kidney%20function%20tests%20panel%20-%20Serum%20or%20Plasma.
+
+## Candidate Results
+
+{
+  "system": "http://loinc.org",
+  "results": [
+    {
+      "code": "24362-6",
+      "display": "Renal function 2000 panel - Serum or Plasma"
+    },
+    {
+      "code": "50261-7",
+      "display": "Deprecated Renal function panel & Glomerular filtration rate.predicted"
+    },
+    {
+      "code": "24324-6",
+      "display": "Hepatic function 1996 panel - Serum or Plasma"
+    },
+    {
+      "code": "24325-3",
+      "display": "Hepatic function 2000 panel - Serum or Plasma"
+    },
+    {
+      "code": "62807-3",
+      "display": "PhenX - serum creatinine assay for kidney function protocol 141401"
+    },
+    {
+      "code": "62806-5",
+      "display": "Deprecated PhenX measure - serum creatinine assay for kidney function"
+    },
+    {
+      "code": "62811-5",
+      "display": "PhenX - urinary creatinine assay for kidney function protocol 141601"
+    },
+    {
+      "code": "62809-9",
+      "display": "PhenX - urinary microalbumin assay for kidney function protocol 141501"
+    },
+    {
+      "code": "62810-7",
+      "display": "Deprecated PhenX measure - urinary creatinine assay for kidney function"
+    },
+    {
+      "code": "62808-1",
+      "display": "Deprecated PhenX measure - urinary microalbumin assay for kidney function"
+    },
+    {
+      "code": "88843-8",
+      "display": "Metabolic panel.dialysis patient - Serum or Plasma"
+    },
+    {
+      "code": "70545-9",
+      "display": "Functional Assessment of Chronic Illness Therapy for patients with kidney cancer questionnaire -15 items (FACIT - FKSI-15)"
+    },
+    {
+      "code": "70546-7",
+      "display": "Functional Assessment of Chronic Illness Therapy for patients with kidney cancer questionnaire -10 items (FACIT - FKSI-10)"
+    },
+    {
+      "code": "70547-5",
+      "display": "Functional Assessment of Chronic Illness Therapy for patients with kidney cancer - Disease Related Symptoms Questionnaire - 9 items (FACIT - FKSI-DRS 9)"
+    },
+    {
+      "code": "96403-1",
+      "display": "Renal clearance and Renal plasma flow panel - Urine and Serum or Plasma"
+    },
+    {
+      "code": "81458-2",
+      "display": "Pulmonary function test panel"
+    },
+    {
+      "code": "94593-1",
+      "display": "Multiplex allergen panel - Serum or Plasma"
+    },
+    {
+      "code": "69555-1",
+      "display": "Lactose tolerance panel [Mass/volume] in Serum or Plasma"
+    },
+    {
+      "code": "69554-4",
+      "display": "Lactose tolerance panel [Moles/volume] in Serum or Plasma"
+    },
+    {
+      "code": "34541-3",
+      "display": "ACTH stimulation test using IM corticosteroids in Serum or Plasma"
+    }
+  ],
+  "links": {
+    "nextPageOfResults": "./$lookup-code?system=http://loinc.org&display=%20Kidney%20function%20tests%20panel%20%20%20Serum%20or%20Plasma%20&offset=20&limit=20"
+  }
+}
+
+## Next Steps
+
+
+Examine the array of candidate results. Narrow it down to the best choice.
+
+Then output a "Final Grade: A or B or C or F", evaluating the best candidate. Output a brief justification ("Justification: ...")
+* A if it clearly meets the user's intent
+* B if there is something that you are uncertain of
+* C if there seems to be a problem here and this work needs to be redone
+
+
+Now, take the candidate and carefully copy its code + display into a ```json code block like:
+
+```json
+{
+  "system": "", // exact copy from candidate system
+  "display": "", // exact copy from candidate result JSON
+  "code": "" // exact copy from candidate result JSON
+}
+```
+
+You must not change the code or display. Only exact copy from results.
+
+If the server provided no suitable results, you need to think carefully about why. Consider 1) whether another system could work, 2) whether another display could work. Explain your thoughts, starting with "Thought: ..." Decide on a new query to try and output this query (format is "New Query: ?system=&display=" and must include system + display params).
+
+(Example: "It looks like we may have queried the wrong system, or searched for the wrong display value
+New Query: ?system=...)
+
+
+
+ret gens [
+  {
+    text: 'Based on the candidate results, the best match for "RFTs" appears to be "Renal function 2000 panel - Serum or Plasma" with LOINC code "24362-6". \n' +
+      '\n' +
+      'Final Grade: A\n' +
+      '\n' +
+      'Justification: "Renal function 2000 panel - Serum or Plasma" is a comprehensive panel that includes tests for creatinine, blood urea nitrogen (BUN), and electrolytes, which are commonly used to assess renal function. This matches the intent of the original text, which mentions "RFTs" (renal function tests). \n' +
+      '\n' +
+      '```json\n' +
+      '{\n' +
+      '  "system": "http://loinc.org",\n' +
+      '  "display": "Renal function 2000 panel - Serum or Plasma",\n' +
+      '  "code": "24362-6"\n' +
+      '}\n' +
+      '```\n' +
+      '\n' +
+      "Thought: It's possible that the previous queries did not yield suitable results because the search terms were too specific or not specific enough. It's also possible that the desired concept is not included in the LOINC system. \n" +
+      '\n' +
+      'New Query: ?system=http://loinc.org&display=Renal%20function%20panel%20-%20Serum%20or%20Plasma',
+    message: AIChatMessage {
+      text: 'Based on the candidate results, the best match for "RFTs" appears to be "Renal function 2000 panel - Serum or Plasma" with LOINC code "24362-6". \n' +
+        '\n' +
+        'Final Grade: A\n' +
+        '\n' +
+        'Justification: "Renal function 2000 panel - Serum or Plasma" is a comprehensive panel that includes tests for creatinine, blood urea nitrogen (BUN), and electrolytes, which are commonly used to assess renal function. This matches the intent of the original text, which mentions "RFTs" (renal function tests). \n' +
+        '\n' +
+        '```json\n' +
+        '{\n' +
+        '  "system": "http://loinc.org",\n' +
+        '  "display": "Renal function 2000 panel - Serum or Plasma",\n' +
+        '  "code": "24362-6"\n' +
+        '}\n' +
+        '```\n' +
+        '\n' +
+        "Thought: It's possible that the previous queries did not yield suitable results because the search terms were too specific or not specific enough. It's also possible that the desired concept is not included in the LOINC system. \n" +
+        '\n' +
+        'New Query: ?system=http://loinc.org&display=Renal%20function%20panel%20-%20Serum%20or%20Plasma'
+    }
+  }
+]
+PREDICT {
+  codings: [
+    {
+      system: 'http://loinc.org',
+      display: 'Renal function 2000 panel - Serum or Plasma',
+      code: '24362-6'
+    }
+  ],
+  grade: 'A',
+  rationale: '"Renal function 2000 panel - Serum or Plasma" is a comprehensive panel that includes tests for creatinine, blood urea nitrogen (BUN), and electrolytes, which are commonly used to assess renal function. This matches the intent of the original text, which mentions "RFTs" (renal function tests). ',
+  newQuerySystem: 'http://loinc.org',
+  newQuery: 'Renal%20function%20panel%20-%20Serum%20or%20Plasma'
+}
+Success
+Final
+{
+  "result": [
+    {
+      "originalText": "Isolated Microscopic hematuria",
+      "focus": "Microscopic hematuria",
+      "thoughts": "Use SNOMED for hematuria",
+      "system": "http://snomed.info/sct",
+      "display": [
+        "Microscopic hematuria"
+      ],
+      "bestCoding": {
+        "system": "http://snomed.info/sct",
+        "code": "197940006",
+        "display": "Microscopic hematuria (disorder)"
+      },
+      "score": {
+        "grade": "A",
+        "rationale": "The candidate result \"Microscopic hematuria (disorder)\" is the exact match for the term \"Microscopic hematuria\" and has the appropriate SNOMED code."
+      }
+    },
+    {
+      "originalText": "Repeat urinalysis w/microscopy, RFTs in 6 weeks",
+      "focus": "urinalysis with microscopy",
+      "thoughts": "Use LOINC for urinalysis with microscopy",
+      "system": "http://loinc.org",
+      "display": [
+        "Urinalysis complete panel - Urine"
+      ],
+      "bestCoding": {
+        "system": "http://loinc.org",
+        "code": "24365-9",
+        "display": "Urinalysis microscopic panel - Urine sediment"
+      },
+      "score": {
+        "grade": "A",
+        "rationale": "The LOINC code \"24365-9\" specifically includes the term \"microscopic\" which indicates that it includes the requested microscopy component of the urinalysis."
+      }
+    },
+    {
+      "originalText": "Repeat urinalysis w/microscopy, RFTs in 6 weeks",
+      "focus": "RFTs",
+      "thoughts": "Use LOINC for RFTs",
+      "system": "http://loinc.org",
+      "display": [
+        "Renal function panel - Serum or Plasma"
+      ],
+      "bestCoding": {
+        "system": "http://loinc.org",
+        "code": "24362-6",
+        "display": "Renal function 2000 panel - Serum or Plasma"
+      },
+      "score": {
+        "grade": "A",
+        "rationale": "\"Renal function 2000 panel - Serum or Plasma\" is a comprehensive panel that includes tests for creatinine, blood urea nitrogen (BUN), and electrolytes, which are commonly used to assess renal function. This matches the intent of the original text, which mentions \"RFTs\" (renal function tests). "
+      }
+    }
+  ]
+}

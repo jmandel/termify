@@ -3,14 +3,10 @@ import { BaseLanguageModel } from "langchain/base_language";
 import { BaseChain, SerializedBaseChain } from "langchain/chains";
 
 import { BaseMemory } from "langchain/memory";
-import {
-  initialPrompt,
-  refinementPrompt,
-} from "./prompt.js";
+import { initialPrompt, refinementPrompt } from "./prompt.js";
 
-import { ChatOpenAI } from "langchain/chat_models";
-import { BaseOutputParser, ChainValues } from "langchain/schema";
 import { RegexParser } from "langchain/output_parsers";
+import { BaseOutputParser, ChainValues } from "langchain/schema";
 
 export class MultiOutputParser extends BaseOutputParser {
   parsers: BaseOutputParser[];
@@ -86,6 +82,7 @@ export class HealthcareConceptChain extends BaseChain {
   }
 
   llmChain: LLMChain;
+  job?: string;
   refinementChain: BaseChain;
   txEndpoint: string = "https://vocab-tool.fly.dev/$lookup-code";
   // txEndpoint: string = "http://localhost:8000/$lookup-code";
@@ -100,6 +97,7 @@ export class HealthcareConceptChain extends BaseChain {
     outputKey?: string;
     memory?: BaseMemory;
     prompt?: BasePromptTemplate;
+    job?: string;
   }) {
     const { memory } = fields;
     super(memory);
@@ -112,11 +110,13 @@ export class HealthcareConceptChain extends BaseChain {
     });
 
     this.refinementChain = new HealthcareConceptRefineChain({
-      llm,
+      llm: fields.llm,
       txEndpoint: this.txEndpoint,
+      job: this.job,
     });
 
     this.txEndpoint = fields.txEndpoint ?? this.txEndpoint;
+    this.job = fields.job ?? this.job;
     this.inputKey = fields.inputKey ?? this.inputKey;
     this.outputKey = fields.outputKey ?? this.outputKey;
   }
@@ -161,11 +161,12 @@ export class HealthcareConceptRefineChain extends BaseChain {
     throw new Error("Method not implemented.");
   }
 
+  job?: string;
   llmChain: LLMChain;
   txEndpoint: string;
   maxAttemptsBeforeFailure: number = 5;
 
-  constructor(fields: { llm: BaseLanguageModel; txEndpoint?: string }) {
+  constructor(fields: { llm: BaseLanguageModel; txEndpoint?: string, job?: string }) {
     super();
     this.llmChain = new LLMChain({
       outputParser: new MultiOutputParser(
@@ -183,63 +184,74 @@ export class HealthcareConceptRefineChain extends BaseChain {
     });
 
     this.txEndpoint = fields.txEndpoint ?? this.txEndpoint;
+    this.job = fields.job ?? this.job;
   }
 
   async _call(values: ChainValues): Promise<ChainValues> {
-    let { originalText, focus, system, query } = values;
+    let { originalText, focus, system, display } = values;
     let { failures = [] } = values;
 
     while (failures.length < this.maxAttemptsBeforeFailure) {
-
+        console.log(system, display)
       const vocabQuery = await fetch(
         `${this.txEndpoint}?system=${encodeURIComponent(
           system
-        )}&display=${encodeURIComponent(JSON.stringify(query))}`
+        )}&display=${encodeURIComponent(JSON.stringify(display))}`
       );
-      const vocabResult = await vocabQuery.json();
+      let vocabResult;
+      
+      try {
+
+      vocabResult = await vocabQuery.text();
+      console.log("VRT", vocabResult)
+      vocabResult = JSON.parse(vocabResult)
+      } catch(e) {
+        console.log("Failed to parse vocab result", e, vocabResult)
+      }
 
       const prediction = (await this.llmChain.predict({
         originalText,
         focus: focus || originalText,
         system,
-        query,
+        display,
         failures,
-        resultJson: JSON.stringify(vocabResult, null, 2),
+        resultJson: vocabResult,
       })) as unknown as VocabResult;
-
-      console.log("PREDICT", prediction);
 
       const { codings, grade, rationale, newQuerySystem, newQuery } =
         prediction;
 
-      if (
-        vocabResult.results.some(
-          (c) => c.code === codings?.[0]?.code && ["A", "B"].includes(grade)
-        )
-      ) {
-        // console.log("Success");
-        return { bestCoding: codings[0], score: { grade, rationale } };
+      const matchingResult = vocabResult?.results?.find(
+        (c) => c.code === codings?.[0]?.code
+      );
+
+      if (matchingResult && ["A", "B"].includes(grade)) {
+        this.llmChain.llm.callbackManager?.handleText(JSON.stringify(prediction, null, 2))
+        return {
+          bestCoding: { system, ...matchingResult },
+          score: { grade, rationale },
+        };
       }
-      // console.log(
-      //   "Failed b/c",
-      //   vocabResult.results.some((c) => c.code === codings?.[0]?.code),
-      //   "and",
-      //   ["A", "B"].includes(grade)
-      // );
 
       failures.push({
         ...values,
         system,
-        query,
+        display,
         failures: undefined,
         rationale: "No suitable results found",
       });
+
+      this.llmChain.llm.callbackManager?.handleText("Failed prediction, trying again")
       if (newQuerySystem && newQuery) {
         system = newQuerySystem;
+        display = newQuery;
+      } else if (codings?.[0]?.display) {
+        system = codings?.[0]?.system;
+        display = codings?.[0]?.display;
       }
       continue;
     }
-    return {}
+    return {};
   }
 
   get inputKeys(): string[] {
@@ -247,17 +259,3 @@ export class HealthcareConceptRefineChain extends BaseChain {
   }
 }
 
-const q = process.argv[2];
-let llm = new ChatOpenAI({ temperature: 0, concurrency: 3 });
-// let pfam = await fnToPrompt(jokes).partial({"given": "Zena"})
-// const lpp = new LLMChain({ llm, prompt: templatize(jokes) });
-
-// console.log(await lpp.call({"family": "Smith"}))
-
-const hcc = new HealthcareConceptChain({ llm });
-const res = await hcc.call({
-  clinicalText: q,
-});
-
-console.log("Final");
-console.log(JSON.stringify(res, null, 2));

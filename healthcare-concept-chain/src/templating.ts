@@ -47,10 +47,6 @@ class FnBackedPromptTemplate extends BasePromptTemplate {
     const ret = new MessageBackededPromptValue(
       await this.fn({ ...(this.partialVariables || {}), ...values })
     );
-    console.log("Prompting with");
-    for (const r of ret.toChatMessages()) {
-      console.log("r", r.text);
-    }
     return ret;
   }
 
