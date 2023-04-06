@@ -1,27 +1,23 @@
-import {
-  AIMessagePromptTemplate, ChatPromptTemplate,
-  HumanMessagePromptTemplate, SystemMessagePromptTemplate
-} from "langchain/prompts";
 import { ai, human, system, templatize } from "templating.js";
 
 const systemMessage = `You are a helpful informatics assistant trained in clinical terminology and deeply familiar with the most common medical synonyms.`;
 
 const assistantWelcome = `Welcome! Please provide clinical text and I will find the core concepts that can be coded in FHIR. I focus on US Core vocabularies for every concept, and I create a terminology query for each concept. I break down complex concepts like "A and B" into separate concepts with distinct "focus".
 
-I query for the preferred term designation. If I'm unsure of the best term, I can include >1. But if there are different concept. Display is what should appear well curated EHR. I use short words, avoid acronyms or abbreviations, or symbols, and put spaces between terms. I separate them out into top-level JSON concepts {}. This is what should appear well curated EHR.
+I query for the preferred term designation. If I'm unsure of the best term, I can include >1. But if there are different concept. I query for what terms that would  appear in a well-curated EHR, including details like dose, method, or laterality. I use short words, avoid acronyms or abbreviations, or symbols, and put spaces between terms.
 
 I always identify the original text, the focus (a singular entity), my thoughts about coding, and the query that I will execute.
 
-I always recognize 1) medications,2) problems or conditions, 3) observable or measurable entities.
+I always recognize 1) medications, 2) problems or conditions, 3) observable or measurable entities, 4) procedures.
 
 key terminologies:
   * LOINC for observations, measurements, tests orders
   * SNOMED for problems, conditions, indications, procedures
-  * RXNORM for medications and other rx or OTC products (query for ingredient or dose only; do not query for indication or sig terms)
+  * RXNORM for medications and other rx or OTC products (query branded or generics according to user's words; do not query for sig details like indication)
 
 Query params:
 * system: URL identifying the code system to query
-* display: array of query terms to match against coding displays 
+* display: query terms to match against coding displays 
 `;
 
 const userExample = `Patient walked 8000 steps yesterday. He has previously had a heart attack. Prilosec 20mg OTC for GERD symptoms. Recommend referral to neurology for headachs. track respitatory rate and bp daily.`;
@@ -41,22 +37,18 @@ const responseExample = `{
 "display": ["myocardial infarction"]
 }
 {
-  "originalText": "Prilosec 20mg OTC for GERD symptoms",
-  "focus": "Prilosec 20mg OTC",
-  "thoughts": "Ues RxNorm to identify this drug with dose",
-  "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
-  "display": [
-    "Prilosec 20 mg OTC"
-  ]
+"originalText": "Prilosec 20mg OTC for GERD symptoms",
+"focus": "Prilosec 20mg OTC",
+"thoughts": "Brand name drug with dose; search RxNorm semantic branded drugs",
+"system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+"display": ["Prilosec 20 mg OTC"]
 }
 {
-  "originalText": "Prilosec 20mg OTC for GERD symptoms",
-  "focus": "GERD symptoms",
-  "thoughts": "Use SNOMED for GERD",
-  "system": "http://snomed.info/sct",
-  "display": [
-    "gastroesophageal reflux disease",
-  ]
+"originalText": "Prilosec 20mg OTC for GERD symptoms",
+"focus": "GERD symptoms",
+"thoughts": "Use SNOMED for GERD",
+"system": "http://snomed.info/sct",
+"display": ["gastroesophageal reflux disease"]
 }
 {
 "originalText": "headachs",
@@ -78,20 +70,6 @@ const responseExample = `{
 "system": "http://loinc.org",
 "display": ["systolic diastolic blood pressure panel"]
 }`;
-
-/*
-
-Query for extraction
-map each Concept.query to "Determine best code"
-  -> if query[] > 1, map each query[] to "Determine best code", and combiner == "Given these n, what is the best"?
-*/
-export const prompt = ChatPromptTemplate.fromPromptMessages([
-  SystemMessagePromptTemplate.fromTemplate(systemMessage),
-  AIMessagePromptTemplate.fromTemplate(assistantWelcome),
-  HumanMessagePromptTemplate.fromTemplate(userExample),
-  AIMessagePromptTemplate.fromTemplate(responseExample),
-  HumanMessagePromptTemplate.fromTemplate(`{clinicalText}`),
-]);
 
 interface HealthCodingInitialState {
   clinicalText: string;

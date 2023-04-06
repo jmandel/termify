@@ -136,8 +136,10 @@ export class HealthcareConceptChain extends BaseChain {
 
     for (const c of codings) {
       const refinement = await this.refinementChain.call(c);
-      c.bestCoding = refinement?.bestCoding;
-      c.score = refinement?.score;
+      c.coding = refinement?.bestCoding;
+      c.selfAssessment = refinement?.score;
+      delete c.display;
+      delete c.system;
     }
     return { [this.outputKey]: codings };
   }
@@ -166,7 +168,11 @@ export class HealthcareConceptRefineChain extends BaseChain {
   txEndpoint: string;
   maxAttemptsBeforeFailure: number = 5;
 
-  constructor(fields: { llm: BaseLanguageModel; txEndpoint?: string, job?: string }) {
+  constructor(fields: {
+    llm: BaseLanguageModel;
+    txEndpoint?: string;
+    job?: string;
+  }) {
     super();
     this.llmChain = new LLMChain({
       outputParser: new MultiOutputParser(
@@ -192,21 +198,20 @@ export class HealthcareConceptRefineChain extends BaseChain {
     let { failures = [] } = values;
 
     while (failures.length < this.maxAttemptsBeforeFailure) {
-        console.log(system, display)
+      console.log(system, display);
       const vocabQuery = await fetch(
         `${this.txEndpoint}?system=${encodeURIComponent(
           system
         )}&display=${encodeURIComponent(JSON.stringify(display))}`
       );
       let vocabResult;
-      
-      try {
 
-      vocabResult = await vocabQuery.text();
-      console.log("VRT", vocabResult)
-      vocabResult = JSON.parse(vocabResult)
-      } catch(e) {
-        console.log("Failed to parse vocab result", e, vocabResult)
+      try {
+        vocabResult = await vocabQuery.text();
+        console.log("VRT", vocabResult);
+        vocabResult = JSON.parse(vocabResult);
+      } catch (e) {
+        console.log("Failed to parse vocab result", e, vocabResult);
       }
 
       const prediction = (await this.llmChain.predict({
@@ -226,7 +231,9 @@ export class HealthcareConceptRefineChain extends BaseChain {
       );
 
       if (matchingResult && ["A", "B"].includes(grade)) {
-        this.llmChain.llm.callbackManager?.handleText(JSON.stringify(prediction, null, 2))
+        this.llmChain.llm.callbackManager?.handleText(
+          JSON.stringify(prediction, null, 2)
+        );
         return {
           bestCoding: { system, ...matchingResult },
           score: { grade, rationale },
@@ -241,13 +248,15 @@ export class HealthcareConceptRefineChain extends BaseChain {
         rationale: "No suitable results found",
       });
 
-      this.llmChain.llm.callbackManager?.handleText("Failed prediction, trying again")
-      if (newQuerySystem && newQuery) {
-        system = newQuerySystem;
-        display = newQuery;
-      } else if (codings?.[0]?.display) {
+      this.llmChain.llm.callbackManager?.handleText(
+        "Failed prediction, trying again"
+      );
+      if (codings?.[0]?.display) {
         system = codings?.[0]?.system;
         display = codings?.[0]?.display;
+      } else if (newQuerySystem && newQuery) {
+        system = newQuerySystem;
+        display = newQuery;
       }
       continue;
     }
@@ -258,4 +267,3 @@ export class HealthcareConceptRefineChain extends BaseChain {
     return ["originalText", "focus", "system", "display"];
   }
 }
-

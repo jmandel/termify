@@ -19,58 +19,47 @@ $ npm run termify "patient has a left inguinal hernia. he needs to stop his coum
   "result": [
     {
       "originalText": "left inguinal hernia",
-      "focus": "inguinal hernia",
+      "focus": "left inguinal hernia",
       "thoughts": "Use SNOMED for hernia",
-      "system": "http://snomed.info/sct",
-      "display": [
-        "inguinal hernia"
-      ],
-      "bestCoding": {
+      "coding": {
         "system": "http://snomed.info/sct",
-        "code": "396232000",
-        "display": "Inguinal hernia (disorder)"
+        "code": "236022004",
+        "display": "Left inguinal hernia (disorder)"
       },
-      "score": {
+      "selfAssessment": {
         "grade": "A",
-        "rationale": "This code accurately represents the concept of \"inguinal hernia\" without specifying laterality or other details."
+        "rationale": "The candidate result \"Left inguinal hernia\" is a perfect match for the user's query \"left inguinal hernia\". The code \"236022004\" is specific to the left side and accurately describes the condition."
       }
     },
     {
       "originalText": "stop his coumadin before surgery",
       "focus": "coumadin",
       "thoughts": "Use RxNorm for Coumadin",
-      "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
-      "display": [
-        "warfarin"
-      ],
-      "bestCoding": {
+      "coding": {
         "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
         "code": "11289",
         "display": "warfarin"
       },
-      "score": {
+      "selfAssessment": {
         "grade": "A",
-        "rationale": "\"Coumadin\" is a brand name for the medication warfarin, and \"warfarin\" is the generic name. The candidate result with code \"11289\" and display \"warfarin\" is the best match for the term \"coumadin\"."
+        "rationale": "\"Warfarin\" is the generic name for Coumadin, and is the most commonly used term in clinical settings."
       }
     },
     {
       "originalText": "stop his coumadin before surgery",
       "focus": "surgery",
       "thoughts": "Use SNOMED for surgery",
-      "system": "http://snomed.info/sct",
-      "display": [
-        "surgery"
-      ],
-      "bestCoding": {
+      "coding": {
         "system": "http://snomed.info/sct",
         "code": "387713003",
         "display": "Surgical procedure (procedure)"
       },
-      "score": {
+      "selfAssessment": {
         "grade": "A",
-        "rationale": "\"Surgical procedure\" is a broad term that encompasses a wide range of surgical interventions, including those that may require the cessation of anticoagulant therapy like coumadin. It is the most appropriate term to use in this context."
+        "rationale": "\"Surgical procedure\" is a broad term that encompasses a wide range of surgical interventions, including those that may require the patient to stop taking anticoagulants like coumadin. This code accurately captures the concept of surgery and is the most appropriate choice from the list of candidates."
       }
     }
   ]
 }
 ```
+
