@@ -134,6 +134,13 @@ export class HealthcareConceptChain extends BaseChain {
       codings: Record<string, any>[];
     };
 
+    this.llmChain.llm.callbackManager?.handleText(
+      {
+        codings,
+      } as unknown as string,
+      true
+    );
+
     for (const c of codings) {
       const refinement = await this.refinementChain.call(c);
       c.coding = refinement?.bestCoding;
@@ -150,6 +157,7 @@ export class HealthcareConceptChain extends BaseChain {
 }
 interface VocabResult {
   codings: Record<string, any>[];
+  action?: string;
   grade?: string;
   rationale?: string;
   newQuerySystem: string;
@@ -177,8 +185,9 @@ export class HealthcareConceptRefineChain extends BaseChain {
     this.llmChain = new LLMChain({
       outputParser: new MultiOutputParser(
         new CodingsParser("codings"),
+        new RegexParser(/Final Action: (.*)/i, ["action"], "noAction"),
         new RegexParser(/Final Grade: (A|B|C)/i, ["grade"], "noGrade"),
-        new RegexParser(/Justification: (.*)/i, ["rationale"], "noRationale"),
+        new RegexParser(/Evaluation: (.*)/i, ["rationale"], "noRationale"),
         new RegexParser(
           /New Query: \?system=(\S+)&display=(\S+)/i,
           ["newQuerySystem", "newQuery"],
@@ -198,7 +207,7 @@ export class HealthcareConceptRefineChain extends BaseChain {
     let { failures = [] } = values;
 
     while (failures.length < this.maxAttemptsBeforeFailure) {
-      console.log(system, display);
+      //   console.log(system, display);
       const vocabQuery = await fetch(
         `${this.txEndpoint}?system=${encodeURIComponent(
           system
@@ -208,10 +217,10 @@ export class HealthcareConceptRefineChain extends BaseChain {
 
       try {
         vocabResult = await vocabQuery.text();
-        console.log("VRT", vocabResult);
+        // console.log("VRT", vocabResult);
         vocabResult = JSON.parse(vocabResult);
       } catch (e) {
-        console.log("Failed to parse vocab result", e, vocabResult);
+        console.error("Failed to parse vocab result", e, system, display, vocabResult);
       }
 
       const prediction = (await this.llmChain.predict({
@@ -223,17 +232,25 @@ export class HealthcareConceptRefineChain extends BaseChain {
         resultJson: vocabResult,
       })) as unknown as VocabResult;
 
-      const { codings, grade, rationale, newQuerySystem, newQuery } =
+      const { codings, grade, action, rationale, newQuerySystem, newQuery } =
         prediction;
+    
 
       const matchingResult = vocabResult?.results?.find(
         (c) => c.code === codings?.[0]?.code
       );
 
-      if (matchingResult && ["A", "B"].includes(grade)) {
-        this.llmChain.llm.callbackManager?.handleText(
-          JSON.stringify(prediction, null, 2)
-        );
+      this.llmChain.llm.callbackManager?.handleText(
+        {
+          ...prediction,
+          usedRealResultCode: !!matchingResult,
+          usedRealResultDisplay:
+            matchingResult && matchingResult?.display === codings?.[0]?.display,
+        } as unknown as string,
+        true
+      );
+
+      if ((action.startsWith("Return") || failures.length === this.maxAttemptsBeforeFailure - 1 )&& matchingResult ) {
         return {
           bestCoding: { system, ...matchingResult },
           score: { grade, rationale },
@@ -245,18 +262,18 @@ export class HealthcareConceptRefineChain extends BaseChain {
         system,
         display,
         failures: undefined,
-        rationale: "No suitable results found",
+        rationale: "No suitable results with this query term",
       });
 
-      this.llmChain.llm.callbackManager?.handleText(
-        "Failed prediction, trying again"
-      );
-      if (codings?.[0]?.display) {
-        system = codings?.[0]?.system;
-        display = codings?.[0]?.display;
-      } else if (newQuerySystem && newQuery) {
+      //   this.llmChain.llm.callbackManager?.handleText(
+      //     "Failed prediction, trying again"
+      //   );
+      if (newQuerySystem && newQuery) {
         system = newQuerySystem;
         display = newQuery;
+      } else if (codings?.[0]?.display) {
+        system = codings?.[0]?.system;
+        display = codings?.[0]?.display;
       }
       continue;
     }

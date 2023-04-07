@@ -2,9 +2,9 @@ import { ai, human, system, templatize } from "templating.js";
 
 const systemMessage = `You are a helpful informatics assistant trained in clinical terminology and deeply familiar with the most common medical synonyms.`;
 
-const assistantWelcome = `Welcome! Please provide clinical text and I will find the core concepts that can be coded in FHIR. I focus on US Core vocabularies for every concept, and I create a terminology query for each concept. I break down complex concepts like "A and B" into separate concepts with distinct "focus".
+const assistantWelcome = `Welcome! Please provide clinical text and I will find the core concepts that can be coded in FHIR. I focus on US Core vocabularies for every concept, and I create a terminology query for each concept. I break down complex concepts like "A and B" into separate concepts with distinct "focus". I infer intent; I never take shortcuts or offer unsolicited advice.
 
-I query for the preferred term designation. If I'm unsure of the best term, I can include >1. But if there are different concept. I query for what terms that would  appear in a well-curated EHR, including details like dose, method, or laterality. I use short words, avoid acronyms or abbreviations, or symbols, and put spaces between terms.
+I query for the preferred term designation. If I'm unsure of the best term, I can include >1. But if there are different concept. I query for what terms that would  appear in a well-curated EHR, including details like dose, method, or laterality. I use clinical words, avoid acronyms or abbreviations, or symbols, and put spaces between terms.
 
 I always identify the original text, the focus (a singular entity), my thoughts about coding, and the query that I will execute.
 
@@ -104,30 +104,35 @@ const historyOfFailedQueries = (state) => {
 };
 
 const nextStepsRefine = (_state) => `
-Examine the array of candidate results. Narrow it down to the best choice.
 
-Then output a "Final Grade: A or B or C or F", evaluating the best candidate. Output a brief justification ("Justification: ...")
-* A if it clearly meets the user's intent
-* B if there is something that you are uncertain of
-* C if there seems to be a problem here and this work needs to be redone
+1. Determine the array index of the best candidate and output this ("Array Index: ___,  Display _, Code _")
 
+2. Produce and output the JSON code block ("Best Candidate:\n${"```"}json...") containing the code + display for (1), + system added. Here is an example to follow.
 
-Now, take the candidate and carefully copy its code + display into a ${"```"}json code block like:
-
+Best Candidate:
 ${"```"}json
 {
-  "system": "", // exact copy from candidate system
-  "display": "", // exact copy from candidate result JSON
-  "code": "" // exact copy from candidate result JSON
+  "system":  ...
+  "display":  // exact copy
+  "code":   // exact copy
 }
 ${"```"}
 
-You must not change the code or display. Only exact copy from results.
+3. I suspect this candidate may be too broad or too specific for my original text. I want well understood medical terms. Output you evaluation of the candidate ("Evaluation: ...")
 
-If the server provided no suitable results, you need to think carefully about why. Consider 1) whether another system could work, 2) whether another display could work. Explain your thoughts, starting with "Thought: ..." Decide on a new query to try and output this query (format is "New Query: ?system=&display=" and must include system + display params).
+4. Output "Final Grade: A or B or C" for the candidate you selected.
+* A if this candidate would pass a formal review
+* B if there is something missing, too precise, too vague, etc
+* C if there seems to be a problem here and this work needs to be redone
 
-(Example: "It looks like we may have queried the wrong system, or searched for the wrong display value\nNew Query: ?system=...)
+5. Think carefully about why my results were not ideal. Determine what the ideal code would be, and verbalise your thoughts, starting with "Thought: ..." What new display name is ideal, using your knowledge of medical terms? Output a new query for me to try (format is "New Query: ?system=&display=" and must include system + display params). Never repeat a "failed query" from above.
+
+(Example: "You were really asking about ____, which I can show you how to query for using,,,.\nNew Query: ?system=...)
+
+6. Output a Final Action, which is "Final Action: New Query" or "Final Action: Return This Result".
+
 `
+
 const nextStepsRepair = (_state) => `
 This query returned no results.
 
@@ -141,7 +146,7 @@ export const refinementPrompt = templatize(async (state) => [
   ai(assistantWelcome),
   human(`Thanks! In my clinical note, I mentioned "${
     state.originalText
-  }". I'm looking for the code that best matches "${state.focus}".
+  }". Please help me determine if any of these codes is ideal for "${state.focus}".
 
 ${historyOfFailedQueries(state)}
 

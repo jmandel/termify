@@ -47,6 +47,7 @@ class FnBackedPromptTemplate extends BasePromptTemplate {
     const ret = new MessageBackededPromptValue(
       await this.fn({ ...(this.partialVariables || {}), ...values })
     );
+    // console.log(ret)
     return ret;
   }
 
