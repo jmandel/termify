@@ -125,7 +125,7 @@ ${"```"}
 * B if there is something missing, too precise, too vague, etc
 * C if there seems to be a problem here and this work needs to be redone
 
-5. Think carefully about why my results were not ideal. Determine what the ideal code would be, and verbalise your thoughts, starting with "Thought: ..." What new display name is ideal, using your knowledge of medical terms? Output a new query for me to try (format is "New Query: ?system=&display=" and must include system + display params). Never repeat a "failed query" from above.
+5. Think carefully about why my results were not ideal. Determine what the ideal code would be for the original text, and verbalise your thoughts, starting with "Thought: ..." What new display name is ideal, using your knowledge of medical terms? Output a new query for me to try (format is "New Query: ?system=&display=" and must include system + display params). Never repeat a "failed query" from above, and never add detail beyond my original rquest.
 
 (Example: "You were really asking about ____, which I can show you how to query for using,,,.\nNew Query: ?system=...)
 
