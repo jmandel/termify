@@ -38,9 +38,36 @@ const res = await hcc.call({
   clinicalText: q,
 });
 
-// console.log("Final");
-// console.log(JSON.stringify(res, null, 2));
 
 report.plan = report.steps[0].parsed;
-report.result = res;
+report.result = res.result;
 console.log(JSON.stringify(report, null, 2))
+
+// const codings = {
+//     "codings": [
+//       {
+//         "originalText": "must stop coumadin before repair of inguinal hernia",
+//         "focus": "repair",
+//         "thoughts": "Use SNOMED for surgical repair of inguinal hernia",
+//         "codes": [
+//          {
+//             "system": "http://snomed.info/sct",
+//             "display": "Repair of inguinal hernia, open approach (procedure)"
+//           } ,
+//           {
+//             "system": "http://snomed.info/sct",
+//             "display": "Surgical procedure (procedure)"
+//           }
+//         ]
+//       }
+//     ]
+//   }.codings as any;
+
+//     for (const c of codings) {
+//       const refinement = await hcc.refinementChain.call(c);
+//       c.coding = refinement?.coding;
+//       c.selfAssessment = {...refinement, coding: undefined}
+//       delete c.codes
+//       console.log("MAPPED TP", c)
+//     }
+ 

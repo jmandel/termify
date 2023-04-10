@@ -143,10 +143,9 @@ export class HealthcareConceptChain extends BaseChain {
 
     for (const c of codings) {
       const refinement = await this.refinementChain.call(c);
-      c.coding = refinement?.bestCoding;
-      c.selfAssessment = refinement?.score;
-      delete c.display;
-      delete c.system;
+      c.coding = refinement?.coding;
+      c.selfAssessment = {...refinement, coding: undefined}
+      delete c.codes
     }
     return { [this.outputKey]: codings };
   }
@@ -160,8 +159,6 @@ interface VocabResult {
   action?: string;
   grade?: string;
   rationale?: string;
-  newQuerySystem: string;
-  newQuery: string;
 }
 export class HealthcareConceptRefineChain extends BaseChain {
   _chainType(): string {
@@ -185,14 +182,9 @@ export class HealthcareConceptRefineChain extends BaseChain {
     this.llmChain = new LLMChain({
       outputParser: new MultiOutputParser(
         new CodingsParser("codings"),
-        new RegexParser(/Final Action: (.*)/i, ["action"], "noAction"),
+        new RegexParser(/Final Recommendation: (.*)/i, ["action"], "noAction"),
         new RegexParser(/Final Grade: (A|B|C)/i, ["grade"], "noGrade"),
         new RegexParser(/Evaluation: (.*)/i, ["rationale"], "noRationale"),
-        new RegexParser(
-          /New Query: \?system=(\S+)&display=(\S+)/i,
-          ["newQuerySystem", "newQuery"],
-          "noQuery"
-        )
       ),
       prompt: refinementPrompt,
       llm: fields.llm,
@@ -203,81 +195,74 @@ export class HealthcareConceptRefineChain extends BaseChain {
   }
 
   async _call(values: ChainValues): Promise<ChainValues> {
-    let { originalText, focus, system, display } = values;
+    let { originalText, focus, thoughts, codes } = values;
     let { failures = [] } = values;
 
-    while (failures.length < this.maxAttemptsBeforeFailure) {
-      //   console.log(system, display);
+    let codeIndex = 0;
+    const previousCandidates = [];
+    while (failures.length < this.maxAttemptsBeforeFailure && codeIndex < codes.length) {
+      const coding = codes[codeIndex++];
+
       const vocabQuery = await fetch(
         `${this.txEndpoint}?system=${encodeURIComponent(
-          system
-        )}&display=${encodeURIComponent(JSON.stringify(display))}`
+          coding.system
+        )}&display=${encodeURIComponent(JSON.stringify(coding.display))}`
       );
+
       let vocabResult;
 
       try {
         vocabResult = await vocabQuery.text();
-        // console.log("VRT", vocabResult);
         vocabResult = JSON.parse(vocabResult);
       } catch (e) {
         console.error("Failed to parse vocab result", e, system, display, vocabResult);
       }
 
+      console.log("NEW PRED", previousCandidates)
       const prediction = (await this.llmChain.predict({
         originalText,
         focus: focus || originalText,
-        system,
-        display,
+        thoughts,
         failures,
         resultJson: vocabResult,
+        previousCandidates
       })) as unknown as VocabResult;
 
-      const { codings, grade, action, rationale, newQuerySystem, newQuery } =
-        prediction;
+      const { codings, grade, action  } = prediction;
     
-
       const matchingResult = vocabResult?.results?.find(
         (c) => c.code === codings?.[0]?.code
       );
 
+      const usedRealResultDisplay = matchingResult?.display === codings?.[0]?.display;
       this.llmChain.llm.callbackManager?.handleText(
         {
           ...prediction,
           usedRealResultCode: !!matchingResult,
           usedRealResultDisplay:
-            matchingResult && matchingResult?.display === codings?.[0]?.display,
+            matchingResult && usedRealResultDisplay
         } as unknown as string,
         true
       );
 
-      if ((action.startsWith("Return") || failures.length === this.maxAttemptsBeforeFailure - 1 )&& matchingResult ) {
-        return {
-          bestCoding: { system, ...matchingResult },
-          score: { grade, rationale },
-        };
+      if (grade === "A" && matchingResult && usedRealResultDisplay) {
+        previousCandidates.push({
+            grade,
+            action,
+            coding: codings[0]
+        })
       }
 
-      failures.push({
-        ...values,
-        system,
-        display,
-        failures: undefined,
-        rationale: "No suitable results with this query term",
-      });
-
-      //   this.llmChain.llm.callbackManager?.handleText(
-      //     "Failed prediction, trying again"
-      //   );
-      if (newQuerySystem && newQuery) {
-        system = newQuerySystem;
-        display = newQuery;
-      } else if (codings?.[0]?.display) {
-        system = codings?.[0]?.system;
-        display = codings?.[0]?.display;
+      if (!action.startsWith("Use")) {
+        failures.push({
+            ...values,
+            failures: undefined,
+            rationale: "No suitable results found"
+        });
       }
-      continue;
     }
-    return {};
+
+    return previousCandidates.slice(-1)[0];
   }
 
   get inputKeys(): string[] {
