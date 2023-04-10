@@ -24,6 +24,7 @@ class WeblogCallbackHandler extends BaseCallbackHandler {
 const callbackManager = new CallbackManager();
 callbackManager.addHandler(new WeblogCallbackHandler());
 const q = process.argv[2];
+const s = process.argv[3];
 
 const report: Record<string, any> = {
   input: q,
@@ -32,13 +33,14 @@ const report: Record<string, any> = {
 
 // console.log("Q", q);
 let llm = new ChatOpenAI({ temperature: 0.3, concurrency: 3, callbackManager});
-const hcc = new HealthcareConceptChain({ llm });
+const hcc = new HealthcareConceptChain({ llm: llm, txStrategy: s });
 
 const res = await hcc.call({
   clinicalText: q,
 });
 
 
+report.strategy = s;
 report.plan = report.steps[0].parsed;
 report.result = res.result;
 console.log(JSON.stringify(report, null, 2))
