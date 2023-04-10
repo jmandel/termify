@@ -84,7 +84,7 @@ export class HealthcareConceptChain extends BaseChain {
   llmChain: LLMChain;
   job?: string;
   refinementChain: BaseChain;
-  txEndpoint: string = "https://vocab-tool.fly.dev/$lookup-code";
+  txEndpoint: Tx;
   // txEndpoint: string = "http://localhost:8000/$lookup-code";
 
   inputKey = "clinicalText";
@@ -92,7 +92,7 @@ export class HealthcareConceptChain extends BaseChain {
 
   constructor(fields: {
     llm: BaseLanguageModel;
-    txEndpoint?: string;
+    txStrategy?: string;
     inputKey?: string;
     outputKey?: string;
     memory?: BaseMemory;
@@ -109,13 +109,13 @@ export class HealthcareConceptChain extends BaseChain {
       //   memory: this.memory,
     });
 
+    this.txEndpoint = endpoints[fields.txStrategy ?? 'default'];
     this.refinementChain = new HealthcareConceptRefineChain({
       llm: fields.llm,
       txEndpoint: this.txEndpoint,
       job: this.job,
     });
 
-    this.txEndpoint = fields.txEndpoint ?? this.txEndpoint;
     this.job = fields.job ?? this.job;
     this.inputKey = fields.inputKey ?? this.inputKey;
     this.outputKey = fields.outputKey ?? this.outputKey;
@@ -154,6 +154,76 @@ export class HealthcareConceptChain extends BaseChain {
     return [this.inputKey];
   }
 }
+
+const vsMap:any = {
+  'http://snomed.info/sct': 'http://snomed.info/sct?fhir_vs=ecl/<138875005OR<30506011000036107',
+  'http://loic.org': 'http://loic.org/vs',
+  'http://www.nlm.nih.gov/research/umls/rxnorm':
+    'http://snomed.info/sct?fhir_vs=isa/30506011000036107', // Australianise
+    // 'http://www.nlm.nih.gov/research/umls/rxnorm/vs',
+};
+
+interface Tx {
+  query: (system:string,display:string) => any;
+  mapResults: (result:any) => any;
+}
+
+const endpoints: {[key:string]:Tx} = {
+  'default' : {
+    query: (system, display) => {
+      const txEndpoint = "https://vocab-tool.fly.dev/$lookup-code"
+      return `${txEndpoint}?system=${encodeURIComponent(
+        system
+      )}&display=${encodeURIComponent(JSON.stringify(display))}`;
+    },
+    mapResults: (parameters) => parameters,
+  },
+  'translate': {
+    query: (system, display) => {
+      const txEndpoint = "https://tx.ontoserver.csiro.au/fhir/"
+        + "/ConceptMap/$translate"
+        + "?url=" + encodeURIComponent("http://ontoserver.csiro.au/fhir/ConceptMap/automapstrategy-default")
+        + "&system=" + encodeURIComponent("http://ontoserver.csiro.au/fhir/CodeSystem/codesystem-terms");
+      return `${txEndpoint}&target=${encodeURIComponent(
+        vsMap[system]
+      )}&code=${encodeURIComponent(JSON.stringify(display))}`;
+    },
+    mapResults: (parameters) => {
+      return {
+        results: parameters.parameter
+          .filter(p => p.name === 'match')
+          .flatMap(p => p.part
+            .filter(part => part.name === 'concept')
+            .map(part => {
+              const c = part.valueCoding
+              return {
+                code: c.code,
+                system: c.system,
+                display: c.display,
+              }
+            })
+          )
+          .slice(0, 3)
+      }
+    },
+  },
+  'expand':{
+    query: (system, display) => {
+      const txEndpoint = "https://tx.ontoserver.csiro.au/fhir/"
+        + "/ValueSet/$expand"
+        + "?count=5"
+      return `${txEndpoint}&url=${encodeURIComponent(
+        vsMap[system]
+      )}&filter=${encodeURIComponent(JSON.stringify(display))}`;
+    },
+    mapResults: (valueSet) => {
+      return {
+        results: valueSet.expansion?.contains ?? []
+      }
+    },
+  }
+}
+
 interface VocabResult {
   codings: Record<string, any>[];
   action?: string;
@@ -170,12 +240,12 @@ export class HealthcareConceptRefineChain extends BaseChain {
 
   job?: string;
   llmChain: LLMChain;
-  txEndpoint: string;
+  txEndpoint: Tx;
   maxAttemptsBeforeFailure: number = 5;
 
   constructor(fields: {
     llm: BaseLanguageModel;
-    txEndpoint?: string;
+    txEndpoint?: Tx;
     job?: string;
   }) {
     super();
@@ -190,7 +260,7 @@ export class HealthcareConceptRefineChain extends BaseChain {
       llm: fields.llm,
     });
 
-    this.txEndpoint = fields.txEndpoint ?? this.txEndpoint;
+    this.txEndpoint = fields.txEndpoint ?? endpoints[1];
     this.job = fields.job ?? this.job;
   }
 
@@ -203,19 +273,16 @@ export class HealthcareConceptRefineChain extends BaseChain {
     while (failures.length < this.maxAttemptsBeforeFailure && codeIndex < codes.length) {
       const coding = codes[codeIndex++];
 
-      const vocabQuery = await fetch(
-        `${this.txEndpoint}?system=${encodeURIComponent(
-          coding.system
-        )}&display=${encodeURIComponent(JSON.stringify(coding.display))}`
-      );
+      const vocabQuery = await fetch(this.txEndpoint.query(coding.system, coding.display));
 
       let vocabResult;
 
       try {
         vocabResult = await vocabQuery.text();
-        vocabResult = JSON.parse(vocabResult);
+        vocabResult = this.txEndpoint.mapResults(JSON.parse(vocabResult));
+        // console.log('TX', coding.display, vocabResult);
       } catch (e) {
-        console.error("Failed to parse vocab result", e, system, display, vocabResult);
+        console.error("Failed to parse vocab result", e, coding.system, coding.display, vocabResult);
       }
 
       console.log("NEW PRED", previousCandidates)
