@@ -189,7 +189,6 @@ const endpoints: {[key:string]:Tx} = {
       )}&code=${encodeURIComponent(JSON.stringify(display))}`;
     },
     mapResults: (parameters) => {
-      console.log('translate', parameters)
       return {
         results: parameters.parameter
           .filter(p => p.name === 'match')
@@ -281,6 +280,7 @@ export class HealthcareConceptRefineChain extends BaseChain {
       try {
         vocabResult = await vocabQuery.text();
         vocabResult = this.txEndpoint.mapResults(JSON.parse(vocabResult));
+        // console.log('TX', coding.display, vocabResult);
       } catch (e) {
         console.error("Failed to parse vocab result", e, coding.system, coding.display, vocabResult);
       }
