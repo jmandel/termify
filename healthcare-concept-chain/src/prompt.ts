@@ -47,6 +47,9 @@ const responseExample = `{
 "codes": [{
   "system": "http://snomed.info/sct",
   "display": "Myocardial infarction (disorder)"
+  },{
+  "system": "http://snomed.info/sct",
+  "display": "Heart Attack"
   }]
 }
 {
